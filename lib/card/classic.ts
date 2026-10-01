@@ -57,6 +57,44 @@ const DIMENSIONS =
 
 const REF_PHOTO = 'Please refer to the first image I uploaded.';
 
+// ---------------------------------------------------------------------------
+// frame_structure：test1 的 ui_elements 給了「卡面要印什麼」，但沒說「印成什麼樣」。
+// 實測下來，招式列特別吃虧 —— 模型常常把能量費用當成文字印出來，
+// 而不是畫成一顆顆屬性符號。這裡補上版面結構描述。
+//
+// 這是 ui_elements 之外的新鍵，test1 原有的欄位一行都沒動。
+// 遊戲王不加 —— 那套的原始 prompt 本來就夠好。
+// ---------------------------------------------------------------------------
+
+const FRAME_STRUCTURE: Record<string, string[]> = {
+  pokemon: [
+    'Top bar: stage tag on the far left, card name centred in bold, HP value and the elemental type symbol on the right',
+    'Artwork occupies the upper portion of the card and reads as the focal point',
+    'Thin category / height / weight strip sits directly under the artwork',
+    'Ability box: a red rounded "Ability" pill, the ability name in red beside it, rules text in black underneath',
+    'Each move is its own full-width row: energy cost on the far left, move name in large bold type in the middle, damage number right-aligned hard against the edge',
+    'Energy costs must be DRAWN AS CIRCULAR TYPE SYMBOL ICONS, never spelled out as words',
+    'Move rules text sits in smaller type directly beneath its own move name',
+    'Bottom strip split into three compartments with symbol icons: weakness, resistance, retreat cost',
+    'Footer: illustrator credit and card number on the left, italic flavour text on the right',
+    'Keep every row horizontally aligned and give the text room to breathe — no cramped or overlapping type',
+  ],
+  onepiece: [
+    'Cost drawn as a numeral inside a circular bubble in the top-left corner',
+    'Attribute icon badge in the top-right corner',
+    'Power value in large numerals; counter value runs as a vertical strip down the left edge',
+    'The illustration is full-bleed and runs underneath every other element',
+    'Effect text sits in a semi-transparent rounded box in the lower third',
+    'Keyword labels such as 【登場時】 or 【Trigger】 are drawn as small coloured pill badges inline at the start of the sentence, not as plain text',
+    'Stacked at the bottom in this order: card type band, then the card name banner, then a narrow trait band',
+    'Footer: card number and illustrator credit',
+    'Keep the effect text short and the characters correctly formed — legibility matters more than filling the box',
+  ],
+};
+
+const LEGIBILITY =
+  'All printed Traditional Chinese characters must be correctly formed and fully legible; prefer fewer, shorter lines over cramming text in.';
+
 // --- 新版欄位 → test1 輸入的對照 --------------------------------------------
 
 export const ENERGY_TO_ZH: Record<string, string> = {
@@ -203,6 +241,7 @@ export function buildClassic(
 
     j.open('card_layout');
     j.kv('dimensions', DIMENSIONS);
+    j.arr('frame_structure', [...FRAME_STRUCTURE.pokemon, LEGIBILITY].map((t) => ({ text: t })));
     j.arr('ui_elements', [
       { text: `Top: HP • ${pType}屬性符號`, fieldId: 'energy_type' },
       {
@@ -262,6 +301,7 @@ export function buildClassic(
 
     j.open('card_layout');
     j.kv('dimensions', DIMENSIONS);
+    j.arr('frame_structure', [...FRAME_STRUCTURE.onepiece, LEGIBILITY].map((t) => ({ text: t })));
     j.arr('ui_elements', [
       { text: `Cost: ${r('cost').value || '10'}`, fieldId: 'cost', ai: r('cost').ai },
       { text: `Power: ${r('power').value || '12000'}`, fieldId: 'power', ai: r('power').ai },

@@ -3,20 +3,20 @@ import { classicFinishField } from '../classic';
 import type { CardSystem, FieldDef, FillMode, ZoneDef } from '../types';
 
 const zones: ZoneDef[] = [
-  { id: 'cost', label: '費用', fieldIds: ['cost'], x: 12, y: 14, w: 76, h: 68 },
-  { id: 'attr', label: '屬性圖示', fieldIds: ['attribute'], x: 556, y: 12, w: 66, h: 64 },
+  { id: 'cost', label: '費用', fieldIds: ['cost'], x: 13, y: 14, w: 58, h: 58 },
+  { id: 'attr', label: '屬性圖示', fieldIds: ['attribute'], x: 568, y: 20, w: 48, h: 46 },
   {
     id: 'art', label: '滿版插圖（OP 卡的插圖是整張滿版）',
     fieldIds: ['name', 'pose', 'expression', 'outfit', 'bg_setting', 'bg_details', 'bg_atmosphere', 'art_style', 'color', 'camera', 'haki'],
-    x: 20, y: 20, w: 592, h: 516, tone: 'soft',
+    x: 42, y: 72, w: 538, h: 666, tone: 'soft',
   },
-  { id: 'power', label: '力量值', fieldIds: ['power'], x: 424, y: 20, w: 124, h: 50 },
-  { id: 'counter', label: '反擊值', fieldIds: ['counter'], x: 12, y: 298, w: 32, h: 170 },
-  { id: 'effect', label: '效果文字框', fieldIds: ['effect_text', 'trigger'], x: 36, y: 542, w: 552, h: 196 },
-  { id: 'kind', label: '卡片種類帶', fieldIds: ['card_kind'], x: 125, y: 744, w: 380, h: 25 },
-  { id: 'name', label: '卡名帶', fieldIds: ['name'], x: 86, y: 772, w: 456, h: 46 },
-  { id: 'typeband', label: '特徵帶', fieldIds: ['tribe'], x: 166, y: 822, w: 300, h: 28 },
-  { id: 'meta', label: '卡號 / 繪師', fieldIds: ['set_number', 'illustrator'], x: 476, y: 828, w: 102, h: 26 },
+  { id: 'power', label: '力量值', fieldIds: ['power'], x: 428, y: 18, w: 132, h: 48 },
+  { id: 'counter', label: '反擊值', fieldIds: ['counter'], x: 10, y: 310, w: 26, h: 116 },
+  { id: 'effect', label: '效果文字框', fieldIds: ['effect_text', 'trigger'], x: 40, y: 540, w: 538, h: 192 },
+  { id: 'kind', label: '卡片種類帶', fieldIds: ['card_kind'], x: 150, y: 740, w: 330, h: 26 },
+  { id: 'name', label: '卡名帶', fieldIds: ['name'], x: 86, y: 770, w: 456, h: 42 },
+  { id: 'typeband', label: '特徵帶', fieldIds: ['tribe'], x: 200, y: 818, w: 230, h: 27 },
+  { id: 'meta', label: '卡號 / 繪師', fieldIds: ['set_number', 'illustrator'], x: 478, y: 824, w: 112, h: 24 },
   { id: 'frame', label: '卡框 / 箔面', fieldIds: ['rarity', 'foil'], x: 6, y: 6, w: 618, h: 868, tone: 'soft' },
 ];
 
