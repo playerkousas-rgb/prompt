@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>童設計 V4.3 - 全功能工藝合併最終版</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+  <style>
+    body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    .tab { transition: all 0.2s ease; border-bottom: 3px solid transparent; }
+    .tab-active { color: #22d3ee; border-bottom-color: #22d3ee; font-weight: 700; }
+    .color-box {
+      width: 48px; height: 48px; border-radius: 12px; cursor: pointer;
+      border: 3px solid #334155; transition: all 0.2s ease;
+    }
+    .color-box:hover { transform: scale(1.1); border-color: #67e8f9; }
+    pre { white-space: pre-wrap; word-break: break-all; font-size: 0.875rem; line-height: 1.6; }
+    .input-focus:focus { border-color: #22d3ee; box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.2); outline: none; }
+  </style>
+</head>
+<body class="bg-[#0F172A] text-slate-100 min-h-screen p-6">
+  <div class="max-w-7xl mx-auto">
+    <header class="bg-slate-900 border-b border-slate-700 px-8 py-6 flex items-center justify-between rounded-3xl mb-8 shadow-2xl">
+      <div class="flex items-center gap-4">
+        <div class="bg-gradient-to-br from-cyan-400 to-violet-500 p-3 rounded-2xl">
+          <i class="fa-solid fa-gem text-white text-3xl"></i>
+        </div>
+        <div>
+          <h1 class="text-3xl font-black tracking-tight">童設計 <span class="text-cyan-400">V4.3</span></h1>
+          <p class="text-xs text-slate-400 tracking-widest font-medium uppercase">Professional Craft & Design Framework</p>
+        </div>
+      </div>
+    </header>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <div class="lg:col-span-6 bg-slate-900 rounded-3xl border border-slate-700 overflow-hidden flex flex-col shadow-2xl">
+        <div class="flex bg-slate-800 p-2 border-b border-slate-700 overflow-x-auto">
+          <button onclick="switchTab(1)" id="tab1" class="tab tab-active flex-1 py-4 text-sm min-w-[80px]">設計理念</button>
+          <button onclick="switchTab(2)" id="tab2" class="tab flex-1 py-4 text-sm min-w-[80px]">色彩策略</button>
+          <button onclick="switchTab(3)" id="tab3" class="tab flex-1 py-4 text-sm min-w-[80px]">參考靈感</button>
+          <button onclick="switchTab(4)" id="tab4" class="tab flex-1 py-4 text-sm min-w-[80px]">工藝規格</button>
+          <button onclick="switchTab(5)" id="tab5" class="tab flex-1 py-4 text-sm min-w-[80px]">精細調整</button>
+        </div>
+
+        <div id="tabContent" class="flex-1 p-8 overflow-auto min-h-[480px]">
+          <div id="content1" class="space-y-6">
+            <div>
+              <label class="block text-xs font-bold text-slate-500 uppercase mb-2">專案名稱</label>
+              <input id="eventName" type="text" class="input-focus w-full p-4 bg-slate-800 border border-slate-700 rounded-2xl" placeholder="例如：2026 國際交流紀念章">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-500 uppercase mb-2">視覺風格</label>
+              <input id="style" type="text" class="input-focus w-full p-4 bg-slate-800 border border-slate-700 rounded-2xl" placeholder="例如：EVA 未來感、多啦A夢風、死神風、吉卜力感">
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+              <input id="textZh" type="text" class="input-focus w-full p-4 bg-slate-800 border border-slate-700 rounded-2xl" placeholder="主要中文文字">
+              <input id="textEn" type="text" class="input-focus w-full p-4 bg-slate-800 border border-slate-700 rounded-2xl" placeholder="主要英文文字">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-500 uppercase mb-2">視覺元素</label>
+              <textarea id="idea" rows="4" class="input-focus w-full p-4 bg-slate-800 border border-slate-700 rounded-2xl resize-none" placeholder="描述要出現的物品，例如：火山、潛水員、百合花、營火..."></textarea>
+            </div>
+          </div>
+
+          <div id="content2" class="hidden space-y-6">
+            <div class="flex items-center justify-between p-4 bg-slate-950/30 rounded-2xl border border-slate-800">
+              <div class="flex-1">
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-2">色盤數量</label>
+                <input type="range" min="1" max="16" value="4" id="colorCount" class="w-full accent-cyan-400 cursor-pointer" oninput="updateColorCount(this.value)">
+              </div>
+              <div id="colorCountValue" class="ml-6 text-xl font-black text-cyan-400">4</div>
+            </div>
+            <div id="colorPalette" class="grid grid-cols-4 gap-4 justify-items-center"></div>
+            <button onclick="randomizeColors()" class="w-full py-4 bg-slate-700 hover:bg-slate-600 rounded-2xl font-bold transition">隨機重置色盤</button>
+          </div>
+
+          <div id="content3" class="hidden space-y-6">
+            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">特定參考作品 / 美學靈感</label>
+            <input id="ref1" type="text" class="input-focus w-full p-4 bg-slate-800 border border-slate-700 rounded-2xl" placeholder="例如：斬魄刀美學、22世紀貓型機器人配色">
+          </div>
+
+          <div id="content4" class="hidden space-y-6">
+            <div>
+              <label class="block text-xs font-bold text-slate-500 uppercase mb-2">工藝材質</label>
+              <select id="craft" class="input-focus w-full p-4 bg-slate-800 border border-slate-700 rounded-2xl">
+                <option value="機繡">高級電腦刺繡 (Embroidery)</option>
+                <option value="織章">高級織章 (Woven Badge)</option>
+                <option value="金屬實色琺瑯">金屬實色琺瑯 (Hard Enamel)</option>
+                <option value="滴膠">透明滴膠 (Epoxy Dome)</option>
+                <option value="金屬烤漆">金屬壓鑄烤漆 (Soft Enamel)</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-500 uppercase mb-2">徽章形狀</label>
+              <select id="shape" class="input-focus w-full p-4 bg-slate-800 border border-slate-700 rounded-2xl">
+                <option value="圓形">圓形邊框 (Circular)</option>
+                <option value="盾形">盾形邊框 (Shield)</option>
+                <option value="六角形">六角形邊框 (Hexagonal)</option>
+                <option value="不規則幾何形">不規則形 (Irregular)</option>
+              </select>
+            </div>
+          </div>
+
+          <div id="content5" class="hidden">
+            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">額外補充指令 (Precise Instructions)</label>
+            <textarea id="preciseInstruction" rows="10" class="input-focus w-full p-4 bg-slate-800 border border-slate-700 rounded-2xl resize-none" placeholder="例如：增加光影對比度、細節要呈現極致的高畫質、保持構圖居中..."></textarea>
+          </div>
+        </div>
+
+        <div class="p-8 border-t border-slate-700 grid grid-cols-3 gap-4">
+          <button onclick="generatePrompts()" class="bg-gradient-to-r from-cyan-500 to-blue-600 hover:brightness-110 py-5 rounded-2xl font-bold transition active:scale-95 shadow-lg shadow-cyan-500/20">🚀 生成</button>
+          <button onclick="copyPrompt()" class="bg-slate-700 hover:bg-slate-600 py-5 rounded-2xl font-bold transition active:scale-95">📋 複製</button>
+          <button onclick="clearAll()" class="bg-slate-800 hover:bg-red-900/20 py-5 rounded-2xl font-bold border border-slate-700 transition">🗑️ 清除</button>
+        </div>
+      </div>
+
+      <div class="lg:col-span-6 bg-slate-900 rounded-3xl border border-slate-700 p-8 shadow-2xl flex flex-col">
+        <div class="flex items-center justify-between mb-6">
+          <h2 class="text-xl font-bold flex items-center gap-2"><i class="fas fa-magic text-cyan-400"></i> 合併指令輸出</h2>
+          <div class="px-3 py-1 bg-cyan-500/10 border border-cyan-500/30 rounded-full text-[10px] text-cyan-400 font-bold tracking-widest">PROMPT READY</div>
+        </div>
+        <div class="flex-1 bg-slate-950 rounded-2xl p-6 border border-slate-800 overflow-auto">
+          <pre id="output" class="text-slate-300 leading-relaxed">請在左側輸入資料，然後點擊「生成」按鈕...</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+let currentColors = ["#6dc97b", "#067a02", "#fd9afc", "#5fc6e4"];
+
+function switchTab(n) {
+  document.querySelectorAll('.tab').forEach(b => b.classList.remove('tab-active'));
+  document.getElementById('tab' + n).classList.add('tab-active');
+  document.querySelectorAll('#tabContent > div').forEach(d => d.classList.add('hidden'));
+  document.getElementById('content' + n).classList.remove('hidden');
+  if (n === 2) renderPalette();
+}
+
+function renderPalette() {
+  const container = document.getElementById('colorPalette');
+  if (!container) return;
+  container.innerHTML = '';
+  currentColors.forEach((color, i) => {
+    const div = document.createElement('div');
+    div.className = 'color-box';
+    div.style.backgroundColor = color;
+    div.onclick = () => {
+      const c = prompt('請輸入 Hex 顏色代碼 (例如 #FFFFFF):', color);
+      if (c && /^#[0-9A-Fa-f]{6}$/.test(c)) { currentColors[i] = c; renderPalette(); }
+    };
+    container.appendChild(div);
+  });
+  document.getElementById('colorCountValue').textContent = currentColors.length;
+}
+
+function updateColorCount(val) {
+  const target = parseInt(val);
+  while(currentColors.length < target) currentColors.push('#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0'));
+  currentColors.length = target;
+  renderPalette();
+}
+
+function randomizeColors() {
+  currentColors = currentColors.map(() => '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0'));
+  renderPalette();
+}
+
+function generatePrompts() {
+  const eventName = document.getElementById('eventName').value.trim() || "徽章設計專案";
+  const style = document.getElementById('style').value.trim() || "簡潔向量風格";
+  const idea = document.getElementById('idea').value.trim() || "核心視覺元素";
+  const textZh = document.getElementById('textZh').value.trim();
+  const textEn = document.getElementById('textEn').value.trim();
+  const craft = document.getElementById('craft').value;
+  const shape = document.getElementById('shape').value;
+  const ref = document.getElementById('ref1').value.trim();
+  const extra = document.getElementById('preciseInstruction').value.trim();
+  const colorsStr = currentColors.join(', ');
+
+  const craftMap = {
+    "機繡": { 
+      desc: "高品質立體電腦刺繡，具有真實縫線質感與織物背景。", 
+      rule: "在純白色背景上，建立高品質的刺繡材質。確保細節豐富，具有立體針腳與繡線特有的反光質感。" 
+    },
+    "織章": { 
+      desc: "高級織章 (Woven Badge)，表面精細平整，展現高密度纖維編織紋理。", 
+      rule: "在純白色背景上，建立高品質的編織材质。確保視覺構圖清晰，具有精緻的織物織紋質感。" 
+    },
+    "金屬實色琺瑯": { 
+      desc: "金屬實色琺瑯 (Hard Enamel)，表面呈現光滑如鏡的質感，搭配亮面金屬勾邊。", 
+      rule: "在純白色背景上，建立高品質的金屬琺瑯材質。金屬線條立體，填色區域光滑且色彩飽和。" 
+    },
+    "滴膠": { 
+      desc: "透明滴膠 (Epoxy) 軟膠工藝，表面具有晶瑩剔透的厚度層，呈現平滑光亮的弧面反光。", 
+      rule: "在純白色背景上，建立高品質的滴膠材質。展現平滑的水滴狀反光效果與透明樹脂的物理質感。" 
+    },
+    "金屬烤漆": { 
+      desc: "金屬烤漆 (Soft Enamel)，色彩區塊略微下凹，金屬線條立體分明，層次感強烈。", 
+      rule: "在純白色背景上，建立高品質的金屬烤漆材質。呈現明顯的物理凹凸感，烤漆表面與金屬邊框對比強烈。" 
+    }
+  };
+
+  const selected = craftMap[craft];
+
+  const prompt = `作為世界級設計師，請為「${eventName}」設計一個工藝與風格深度融合的複合指令：
+
+1. 主題風格：以「${style}」為設計靈魂，呈現「${selected.desc}」的特徵。
+2. 視覺構成：構圖中心包含象徵元素「${idea}」${textZh || textEn ? `，並嵌入文字「${textZh} ${textEn}」` : ''}。
+3. 物理邊界：設計需嚴格限制在「${shape}」邊框內。
+4. 色彩方案：採用 ${currentColors.length} 色專屬色盤：${colorsStr}。
+5. 材質要求：${selected.rule}
+
+${ref ? `靈感來源參考：${ref}\n` : ''}${extra ? `額外調整細節：${extra}\n` : ''}
+Output Context: Professional scout badge, 8K resolution, realistic material textures, studio macro photography, sharp focus, clean white background --ar 1:1`;
+
+  document.getElementById('output').textContent = prompt;
+}
+
+function copyPrompt() {
+  const text = document.getElementById('output').textContent;
+  if (text.startsWith('請在左側')) return alert('請先生成指令！');
+  navigator.clipboard.writeText(text).then(() => alert('✅ 指令已成功複製到剪貼簿'));
+}
+
+function clearAll() {
+  if (confirm('確定清空所有輸入內容？')) location.reload();
+}
+
+window.onload = () => { renderPalette(); };
+</script>
+</body>
+</html>
