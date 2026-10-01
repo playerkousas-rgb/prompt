@@ -23,6 +23,8 @@ interface Props {
 /** 這一格在這個情境下該不該出現（例如沒附圖就不用問「要保留什麼特徵」） */
 function isRelevant(f: FieldDef, values: Record<string, string>) {
   if ((f.id === 'ref_keep' || f.id === 'ref_strength') && (values.ref_use || 'none') === 'none') return false;
+  // 系統自己宣告的條件（例如巾圈「編法」只有編織結類型才有意義）
+  if (f.showIf && !f.showIf(values)) return false;
   return true;
 }
 

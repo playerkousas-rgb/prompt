@@ -89,6 +89,8 @@ export interface FieldDef {
    * 簡易模式只留「不填就會爛掉」的那幾格，其餘都在進階模式裡。
    */
   essential?: boolean;
+  /** 只有在某些情況下才顯示這一格（例如「編法」只有編織結巾圈才有意義） */
+  showIf?: (values: Record<string, string>) => boolean;
   /**
    * 這個欄位會寫進輸出 JSON 的哪一個鍵（給 UI 顯示「它控制什麼」用）。
    * 例：'card_layout.ui_elements → Move 1'
@@ -117,6 +119,18 @@ export interface ExtraOutput {
   /** 一句話說明這份是給誰看的 */
   desc: string;
   text: string;
+}
+
+/** 對照圖上的真實外框（做章用：使用者選什麼形狀，圖上就畫什麼形狀） */
+export interface OutlineSpec {
+  /** 外框的 SVG path */
+  d: string;
+  /** 切割線（組合章用），畫成虛線 */
+  splits?: string[];
+  /** 圖下方的一句說明 */
+  note?: string;
+  /** 哪一格控制這個外框（滑過會亮） */
+  fieldId?: string;
 }
 
 export interface BuildResult {
@@ -149,6 +163,8 @@ export interface CardSystem {
   baseImages?: BaseImageDef[];
   zones: ZoneDef[];
   fields: FieldDef[];
+  /** 依目前欄位值算出成品外框；有給的話對照圖會真的照這個形狀畫 */
+  outline?: (values: Record<string, string>) => OutlineSpec | null;
   build: (values: Record<string, string>, modes: Record<string, FillMode>) => BuildResult;
 }
 

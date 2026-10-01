@@ -13,13 +13,14 @@
 import { JsonWriter, PromptWriter, keywordsOf, makeResolver } from '../../schema/builder';
 import type { CardSystem, FieldDef, FillMode, ZoneDef } from '../../schema/types';
 import { WOGGLE_GROUPS } from '../groups';
+import { WOGGLE_TYPES, woggleTypeById, HOLD_BY_FAMILY } from '../woggleTypes';
 
 const VB = { w: 640, h: 640 };
 
 const zones: ZoneDef[] = [
   {
     id: 'body', label: '環身（材質與編法）',
-    fieldIds: ['woggle_type', 'occasion', 'material_color', 'knot', 'finish'],
+    fieldIds: ['woggle_type', 'occasion', 'material_color', 'knot', 'cord_pattern', 'mount', 'finish'],
     x: 60, y: 150, w: 520, h: 340, tone: 'soft',
   },
   { id: 'face', label: '正面圖案', fieldIds: ['emblem', 'art_style', 'symbols'], x: 190, y: 210, w: 260, h: 220 },
@@ -29,45 +30,17 @@ const zones: ZoneDef[] = [
   { id: 'scarf', label: '領巾（配色參考）', fieldIds: ['scarf_color'], x: 60, y: 528, w: 520, h: 76, tone: 'soft' },
 ];
 
-const TYPES = [
-  {
-    value: 'knot', label: '編織結（土耳其頭結）', swatch: '#8b5e3c',
-    desc: '最傳統，木章極偉領圈就是兩圈土耳其頭結皮繩',
-    keywords: 'a Turk\'s head knot woggle woven from round cord, continuous over-under braid forming a ring',
-  },
-  {
-    value: 'leather', label: '皮件 / 皮雕', swatch: '#a16207',
-    desc: '植鞣皮壓印圖案，可打名字、可上鉚釘',
-    keywords: 'a vegetable-tanned leather woggle, tooled and stamped relief, stitched or riveted seam',
-  },
-  {
-    value: 'wood', label: '木 / 竹', swatch: '#92400e',
-    desc: '原木切片或雷雕，木紋方向要順',
-    keywords: 'a turned wooden woggle with visible grain, laser-engraved emblem on the face',
-  },
-  {
-    value: 'print3d', label: '3D 列印', swatch: '#22d3ee',
-    desc: '最適合把團徽立體化，單色好印',
-    keywords: 'a 3D-printed woggle, clean parametric shell with a raised emblem, subtle layer lines',
-  },
-  {
-    value: 'metal', label: '金屬 / 琺瑯', swatch: '#94a3b8',
-    desc: '壓鑄＋琺瑯，質感最好但要開模',
-    keywords: 'a die-cast metal woggle with enamel colour fill and polished plating',
-  },
-  {
-    value: 'resin', label: '樹脂 / 滴膠', swatch: '#a78bfa',
-    desc: '可以把營火灰、沙、乾燥花包進去當紀念',
-    keywords: 'a cast resin woggle with objects embedded inside the translucent body',
-  },
-];
+const TYPES = WOGGLE_TYPES;
+const typeOf = (values: Record<string, string>) => woggleTypeById(values.woggle_type || 'knot_leather');
 
 const fields: FieldDef[] = [
   {
     id: 'woggle_type', label: '巾圈類型', group: 'purpose', impact: 'high',
-    hint: '決定材質與整個做法，先選這個。',
-    control: { kind: 'chips', options: TYPES },
-    aiFillable: false, default: 'knot', essential: true,
+    hint: '先選這個 —— 構造決定了有沒有正面可以放圖、要不要問編法、字能刻多小。',
+    control: { kind: 'chips', options: TYPES.map((t) => ({
+      value: t.value, label: t.label, swatch: t.swatch, desc: t.desc,
+    })) },
+    aiFillable: false, default: 'knot_leather', essential: true,
   },
   {
     id: 'occasion', label: '用途', group: 'purpose', impact: 'low',
@@ -84,12 +57,14 @@ const fields: FieldDef[] = [
   {
     id: 'emblem', label: '正面圖案', group: 'visual', impact: 'high',
     hint: '巾圈的面很小，一個圖案就好 —— 團徽、百合花、動物頭、年份都可以。',
+    showIf: (v) => typeOf(v).hasFace,
     control: { kind: 'text', placeholder: '例如：百合花徽 + 小山豬側臉' },
     aiFillable: true, aiInstruction: 'a simple bold emblem that reads at thumbnail size',
     default: '百合花徽', essential: true,
   },
   {
     id: 'symbols', label: '童軍符號', group: 'visual', impact: 'mid',
+    showIf: (v) => typeOf(v).hasFace,
     hint: '加一個通用符號，一眼看得出是童軍的東西。',
     control: { kind: 'chips', options: [
       { value: 'none', label: '不用', keywords: '' },
@@ -103,7 +78,8 @@ const fields: FieldDef[] = [
   },
   {
     id: 'knot', label: '編法 / 結構', group: 'visual', impact: 'mid',
-    hint: '只有編織結類型要管這格。瓣數越多越華麗，也越難編。',
+    hint: '瓣數越多越華麗，也越難編。扁帶（打包帶）跟圓繩的結長得不一樣。',
+    showIf: (v) => typeOf(v).needsWeave,
     control: { kind: 'select', options: [
       { value: '3l5b', label: '3 瓣 5 道（3L5B，經典）', keywords: 'three-lead five-bight Turk\'s head weave' },
       { value: 'two_strand', label: '兩圈皮繩（極偉樣式）', keywords: 'two-strand leather Turk\'s head, the classic Gilwell pattern' },
@@ -111,6 +87,30 @@ const fields: FieldDef[] = [
       { value: 'plait', label: '雙股編（Double plait）', keywords: 'double-plaited woven band' },
     ] },
     aiFillable: false, default: 'two_strand',
+  },
+  {
+    id: 'cord_pattern', label: '繩子配色走法', group: 'visual', impact: 'mid',
+    hint: '雙色一定要說清楚誰走外圈，不然 AI 會畫成隨機混色。',
+    control: { kind: 'select', options: [
+      { value: 'single', label: '單色', keywords: 'a single cord colour throughout' },
+      { value: 'spiral', label: '雙色螺旋', keywords: 'two cord colours spiralling alternately through the weave' },
+      { value: 'half', label: '雙色對分（上下各一色）', keywords: 'two cord colours split across the ring, one colour per half' },
+      { value: 'core', label: '主色 + 細撞色線', keywords: 'one dominant cord colour with a thin contrasting accent strand' },
+    ] },
+    showIf: (v) => typeOf(v).family === 'knot',
+    aiFillable: false, default: 'single',
+  },
+  {
+    id: 'mount', label: '領巾怎麼穿過', group: 'visual', impact: 'mid',
+    hint: '平片與造型類最常被 AI 畫錯：它不是一個圈，是一片面 + 背後的環。',
+    control: { kind: 'select', options: [
+      { value: 'slots', label: '正面打兩道孔（領巾直接穿）', keywords: 'two punched slots in the plate, the neckerchief threaded through them' },
+      { value: 'three_hole', label: '三孔（傳統皮片）', keywords: 'the classic three-hole leather slide, the neckerchief woven through three slots' },
+      { value: 'back_loop', label: '背面焊 / 黏一個環', keywords: 'a loop fixed on the back, the decorated face sitting flat in front' },
+      { value: 'snap', label: '壓扣（可拆開）', keywords: 'a press-stud strap that wraps the neckerchief and snaps shut' },
+    ] },
+    showIf: (v) => ['plate', 'figurine'].includes(typeOf(v).family),
+    aiFillable: false, default: 'back_loop',
   },
   {
     id: 'inner_mm', label: '內徑（mm）', group: 'visual', impact: 'mid',
@@ -137,11 +137,13 @@ const fields: FieldDef[] = [
   {
     id: 'engrave_text', label: '刻字內容', group: 'text', impact: 'mid',
     hint: '名字、團號、年份擇一就好，巾圈的面真的很小。',
+    showIf: (v) => typeOf(v).hasFace,
     control: { kind: 'text', placeholder: '例如：12th HK 2026' },
     aiFillable: false, default: '', essential: true,
   },
   {
     id: 'engrave_style', label: '刻字方式', group: 'text', impact: 'low',
+    showIf: (v) => typeOf(v).hasFace,
     hint: '雷雕最清楚；皮革壓印最有手感；浮雕最立體。',
     control: { kind: 'select', options: [
       { value: 'none', label: '不刻字', keywords: '' },
@@ -196,55 +198,83 @@ function build(values: Record<string, string>, modes: Record<string, FillMode>) 
     return keywordsOf(fields, id, v);
   };
 
-  const type = TYPES.find((t) => t.value === (values.woggle_type || 'knot')) ?? TYPES[0];
+  const type = typeOf(values);
   const emblem = r('emblem');
   const inner = values.inner_mm || '22';
   const height = values.height_mm || '25';
   const engrave = (values.engrave_text || '').trim();
   const scarf = (values.scarf_color || '').trim();
+  const material = (values.material_color || '').trim() || type.material;
 
   const p = new PromptWriter();
   p.lit('A scout neckerchief woggle. ');
   p.field('woggle_type', type.keywords);
   p.lit('. ');
-  if (emblem.value) { p.lit('Face emblem: '); p.field('emblem', emblem.value, emblem.ai); p.lit('. '); }
+  if (type.hasFace && emblem.value) {
+    p.lit('Face emblem: ');
+    p.field('emblem', emblem.value, emblem.ai);
+    p.lit('. ');
+  }
 
   const j = new JsonWriter();
   j.open(null);
   j.kv('subject', `Scout neckerchief woggle (neckerchief slide) — ${type.label}`, 'woggle_type');
   j.kv('use', kw('occasion'), 'occasion');
 
+  // --- form：構造。巾圈最常被 AI 畫錯的就是這裡 ---------------------------
   j.open('form');
+  j.kvForce('family', FAMILY_EN[type.family], 'woggle_type');
   j.kv('construction', type.keywords, 'woggle_type');
-  if (values.woggle_type === 'knot') j.kv('weave', kw('knot'), 'knot');
+  if (type.needsWeave) j.kv('weave', kw('knot'), 'knot');
+  if (type.family === 'knot') j.kv('cord_pattern', kw('cord_pattern'), 'cord_pattern');
+  if (type.family === 'plate' || type.family === 'figurine') {
+    j.kv('mounting', kw('mount'), 'mount');
+  }
+  j.kvForce('how_it_holds', HOLD_BY_FAMILY[type.family], 'woggle_type');
   j.kvForce(
     'dimensions',
-    `ring with an inner bore of ${inner}mm and a height of ${height}mm, snug enough that the neckerchief does not slip`,
+    `the opening the neckerchief passes through is about ${inner}mm across and ${height}mm deep, snug enough that the neckerchief does not slip`,
     'inner_mm',
     false,
     false
   );
   j.close();
 
-  j.open('face');
-  j.kv('emblem', emblem.value, 'emblem', emblem.ai);
-  j.kv('scout_symbol', kw('symbols'), 'symbols');
-  if (engrave && values.engrave_style !== 'none') {
-    j.kv('lettering', `"${engrave}" — ${kw('engrave_style')}`, 'engrave_text');
-    j.kvForce('lettering_rules', 'Spell the lettering exactly as given; keep it short and bold, it is tiny in reality.', 'engrave_text', false, false);
+  // --- face：只有真的有「面」的構造才寫 -----------------------------------
+  if (type.hasFace) {
+    j.open('face');
+    j.kv('emblem', emblem.value, 'emblem', emblem.ai);
+    j.kv('scout_symbol', kw('symbols'), 'symbols');
+    if (engrave && values.engrave_style !== 'none') {
+      j.kv('lettering', `"${engrave}" — ${kw('engrave_style')}`, 'engrave_text');
+      j.kvForce(
+        'lettering_rules',
+        `Spell the lettering exactly as given. On this kind of woggle the smallest readable character is about ${type.minTextMm}mm, so keep it to a few bold characters.`,
+        'engrave_text',
+        false,
+        false
+      );
+    } else {
+      j.kvForce('lettering', 'no lettering', 'engrave_style', false, false);
+    }
+    j.close();
   } else {
-    j.kvForce('lettering', 'no lettering', 'engrave_style', false, false);
+    j.kvForce(
+      'face',
+      'no decorated face — the design is entirely the weave pattern and the cord colours',
+      'woggle_type'
+    );
   }
-  j.close();
 
   j.open('style');
   j.kv('art_direction', kw('art_style'), 'art_style');
-  j.kv('material_colour', values.material_color, 'material_color');
+  j.kv('material_colour', material, 'material_color');
   j.kv('surface', kw('finish'), 'finish');
+  j.kvForce('making_note', type.note, 'woggle_type');
   j.kvForce(
     'constraint',
-    'The emblem must read clearly at thumbnail size — this object is only a few centimetres across. Bold shapes only, no fine detail.',
-    'emblem',
+    'The whole object is only a few centimetres across — bold shapes only, no fine detail, nothing that would vanish at thumbnail size.',
+    'woggle_type',
     false,
     false
   );
@@ -252,9 +282,11 @@ function build(values: Record<string, string>, modes: Record<string, FillMode>) 
 
   j.kv(
     'render',
-    scarf
-      ? `Studio product photograph, three-quarter view, the woggle threaded onto a folded scout neckerchief (${scarf}), plain light background, soft even light, shallow depth of field, material texture clearly visible`
-      : 'Studio product photograph of the woggle alone, three-quarter view on a plain light background, soft even light, material texture clearly visible',
+    `Studio product photograph, ${type.shot}` +
+      (scarf
+        ? `, the woggle threaded onto a folded scout neckerchief (${scarf})`
+        : ', the woggle alone') +
+      ', plain light background, soft even light, shallow depth of field, material texture clearly visible',
     'scarf_color'
   );
   j.kvForce('negative_prompt', NEGATIVE, undefined, false, false);
@@ -268,6 +300,14 @@ function build(values: Record<string, string>, modes: Record<string, FillMode>) 
     negative: NEGATIVE,
   };
 }
+
+const FAMILY_EN: Record<string, string> = {
+  knot: 'woven cord ring (knot type) — there is no flat front face',
+  solid: 'solid ring turned, cast or printed in one material',
+  plate: 'flat decorated plate worn in front of the neckerchief, not a ring',
+  figurine: 'sculpted figurine with a short tube behind it',
+  fabric: 'fabric tube stitched from a patch or webbing',
+};
 
 const NEGATIVE =
   'person wearing it, full uniform, face, misspelled text, gibberish letters, blurry, lowres, cluttered background, watermark, signature, deformed ring, broken weave';
@@ -292,4 +332,28 @@ export const woggleSystem: CardSystem = {
   zones,
   fields,
   build,
+  outline: (values) => {
+    const t = woggleTypeById(values.woggle_type || 'knot_leather');
+    const cx = VB.w / 2;
+    const cy = VB.h / 2;
+    if (t.family === 'plate' || t.family === 'figurine') {
+      // 平片 / 造型類：畫一片面，不是一個圈
+      const w = 300;
+      const h = 230;
+      return {
+        d: `M ${cx - w / 2} ${cy - h / 2} h ${w} a 26 26 0 0 1 26 26 v ${h - 52} a 26 26 0 0 1 -26 26 h ${-w} a 26 26 0 0 1 -26 -26 v ${-(h - 52)} a 26 26 0 0 1 26 -26 Z`,
+        fieldId: 'woggle_type',
+        note: `${t.label}：${t.note}`,
+      };
+    }
+    const R = 190;
+    const r = 78;
+    return {
+      d:
+        `M ${cx - R} ${cy} a ${R} ${R} 0 1 0 ${R * 2} 0 a ${R} ${R} 0 1 0 ${-R * 2} 0 Z ` +
+        `M ${cx - r} ${cy} a ${r} ${r} 0 1 0 ${r * 2} 0 a ${r} ${r} 0 1 0 ${-r * 2} 0 Z`,
+      fieldId: 'woggle_type',
+      note: `${t.label}：${t.note}`,
+    };
+  },
 };

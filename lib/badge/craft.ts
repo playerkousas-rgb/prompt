@@ -7,6 +7,8 @@
 // 資料來源見 docs/badge-woggle-plan.md。
 // ---------------------------------------------------------------------------
 
+import { shapeById as shapeOf } from './shapes';
+
 export interface CraftDef {
   value: string;
   label: string;
@@ -87,14 +89,8 @@ export function craftById(id: string) {
   return CRAFTS.find((c) => c.value === id) ?? CRAFTS[0];
 }
 
-export const SHAPES = [
-  { value: 'circle', label: '圓形', keywords: 'a perfectly circular badge', regular: true },
-  { value: 'oval', label: '橢圓', keywords: 'an oval badge', regular: true },
-  { value: 'shield', label: '盾形', keywords: 'a classic shield-shaped badge', regular: true },
-  { value: 'square', label: '方形 / 長方', keywords: 'a square badge with slightly rounded corners', regular: true },
-  { value: 'hex', label: '六角形', keywords: 'a hexagonal badge', regular: false },
-  { value: 'custom', label: '異形（跟著圖走）', keywords: 'a die-cut badge whose outline follows the artwork silhouette', regular: false },
-];
+// 外形定義搬到 shapes.ts（那裡還會畫出真正的 SVG 外框）
+export { BADGE_SHAPES as SHAPES, shapeById } from './shapes';
 
 export const EDGES = [
   {
@@ -140,7 +136,7 @@ export function checkManufacturing(values: Record<string, string>): MfgNote[] {
   const notes: MfgNote[] = [];
   const craft = craftById(values.craft || 'embroidery');
   const size = Number(values.size_mm || '75');
-  const shape = SHAPES.find((s) => s.value === (values.shape || 'circle'));
+  const shape = shapeOf(values.shape || 'circle');
   const edge = values.edge || 'merrow';
   const colors = Number(values.color_count || '5');
   const hasText = (values.text_layout || 'arcs') !== 'none';
@@ -155,10 +151,10 @@ export function checkManufacturing(values: Record<string, string>): MfgNote[] {
     });
   }
 
-  if (edge === 'merrow' && !shape?.regular) {
+  if (edge === 'merrow' && !shape.merrowable) {
     notes.push({
       fieldId: 'edge',
-      zh: `「${shape?.label}」這種外形沒辦法包邊（包邊只能做圓、橢圓、方、盾形）。請改成雷切邊，或把外形換成規則形狀。`,
+      zh: `「${shape.label}」這種外形沒辦法包邊（包邊只能做圓、橢圓、方、盾形）。請改成雷切邊，或把外形換成規則形狀。`,
       en: 'A merrowed border only works on regular silhouettes; draw the rim as a clean laser-cut edge instead.',
     });
   }

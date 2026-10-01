@@ -8,10 +8,13 @@ import { useHighlight } from './HighlightContext';
 
 export function CardAnatomy({
   system,
+  values,
   onPickField,
   simple = false,
 }: {
   system: CardSystem;
+  /** 目前欄位值 —— 做章要靠它畫出使用者選的真實外框 */
+  values?: Record<string, string>;
   onPickField: (fieldId: string) => void;
   /** 簡易模式：藏掉換底圖、底圖濃度這些進階玩法 */
   simple?: boolean;
@@ -35,6 +38,8 @@ export function CardAnatomy({
   const current = variants[Math.min(variant, Math.max(variants.length - 1, 0))];
   const baseSrc = customImage ?? current?.src ?? null;
   const fieldLabel = (id: string) => system.fields.find((f) => f.id === id)?.label ?? id;
+
+  const outline = system.outline?.(values ?? {}) ?? null;
 
   const isZoneActive = (fieldIds: string[]) => !!resolved && fieldIds.includes(resolved);
   const activeZones = system.zones.filter((z) => isZoneActive(z.fieldIds));
@@ -121,7 +126,7 @@ export function CardAnatomy({
               <path d="M22 0 L0 0 0 22" fill="none" stroke="rgba(148,163,184,0.07)" strokeWidth="1" />
             </pattern>
             <clipPath id="cardclip">
-              <rect x="0" y="0" width={VB_W} height={VB_H} rx="26" />
+              {outline ? <path d={outline.d} /> : <rect x="0" y="0" width={VB_W} height={VB_H} rx="26" />}
             </clipPath>
           </defs>
 
@@ -141,8 +146,40 @@ export function CardAnatomy({
               />
             )}
 
-            <rect x="0" y="0" width={VB_W} height="6" fill={system.accent} opacity="0.85" />
+            {!outline && <rect x="0" y="0" width={VB_W} height="6" fill={system.accent} opacity="0.85" />}
           </g>
+
+          {/* 真實外框：使用者選了什麼形狀，這裡就畫什麼形狀 */}
+          {outline && (
+            <g
+              onMouseEnter={() => outline.fieldId && setActive(outline.fieldId)}
+              onClick={() => {
+                if (!outline.fieldId) return;
+                togglePin(outline.fieldId);
+                onPickField(outline.fieldId);
+              }}
+              className={outline.fieldId ? 'cursor-pointer' : undefined}
+            >
+              <path
+                d={outline.d}
+                fill="none"
+                stroke={outline.fieldId && resolved === outline.fieldId ? '#22d3ee' : system.accent}
+                strokeWidth={outline.fieldId && resolved === outline.fieldId ? 7 : 4}
+                strokeLinejoin="round"
+              />
+              {outline.splits?.map((d, i) => (
+                <path
+                  key={i}
+                  d={d}
+                  fill="none"
+                  stroke="rgba(226,232,240,0.75)"
+                  strokeWidth="2.5"
+                  strokeDasharray="10 8"
+                  clipPath="url(#cardclip)"
+                />
+              ))}
+            </g>
+          )}
 
           {system.zones.map((z) => {
             const soft = z.tone === 'soft';
@@ -190,6 +227,12 @@ export function CardAnatomy({
           })}
         </svg>
       </div>
+
+      {outline?.note && (
+        <p className="rounded-lg border border-slate-800 bg-slate-950/60 px-2.5 py-1.5 text-center text-[11px] leading-snug text-slate-400">
+          {outline.note}
+        </p>
+      )}
 
       {/* 「這一塊由哪些欄位控制」—— 滑到哪、這裡就列出哪一塊的全部欄位 */}
       <div className="min-h-[58px] rounded-xl border border-slate-800 bg-slate-950/60 p-2.5">

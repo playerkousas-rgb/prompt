@@ -10,7 +10,8 @@
 import { JsonWriter, PromptWriter, keywordsOf, makeResolver } from '../../schema/builder';
 import type { CardSystem, ExtraOutput, FieldDef, FillMode, ZoneDef } from '../../schema/types';
 import { BADGE_GROUPS } from '../groups';
-import { CRAFTS, EDGES, BACKINGS, COVERAGE, SHAPES, craftById, checkManufacturing } from '../craft';
+import { CRAFTS, EDGES, BACKINGS, COVERAGE, craftById, checkManufacturing } from '../craft';
+import { BADGE_SHAPES as SHAPES, shapeById, fitBox } from '../shapes';
 
 // 畫布用正方形 —— 章多半是圓的，用卡牌的 630×880 會很怪
 const VB = { w: 640, h: 640 };
@@ -77,7 +78,7 @@ const SYMBOLS = [
   { value: 'wave', label: '海浪', keywords: 'stylised wave motif' },
 ];
 
-const ART_STYLES = [
+export const ART_STYLES = [
   {
     value: 'retro_patch', label: '復古徽章', swatch: '#d97706',
     desc: '70–80 年代國家公園章感：粗輪廓、限色、微做舊',
@@ -110,7 +111,7 @@ const ART_STYLES = [
   },
 ];
 
-const PALETTES = [
+export const PALETTES = [
   {
     value: 'scout_classic', label: '童軍經典（深綠＋金黃）', swatch: '#0f5132',
     keywords: 'classic scouting palette: deep forest green, golden yellow, cream, dark brown',
@@ -146,6 +147,15 @@ const fields: FieldDef[] = [
       { value: 'bag', label: '背包 / 營毯', keywords: 'collected on a backpack or camp blanket' },
     ] },
     aiFillable: false, default: 'bag',
+  },
+  {
+    id: 'shape', label: '外形（先決定這個）', group: 'purpose', impact: 'high',
+    hint: '外框決定整張章的氣質，也決定能不能包邊。選了之後右邊對照圖會真的畫成那個形狀。',
+    control: { kind: 'chips', options: SHAPES.map((sh) => ({
+      value: sh.value, label: sh.label, desc: sh.desc + (sh.merrowable ? '' : '（不能包邊）'),
+      swatch: sh.merrowable ? '#4ade80' : '#f59e0b',
+    })) },
+    aiFillable: false, default: 'circle', essential: true,
   },
   {
     id: 'size_mm', label: '成品尺寸（mm）', group: 'purpose', impact: 'low',
@@ -284,12 +294,6 @@ const fields: FieldDef[] = [
     aiFillable: false, default: 'embroidery', essential: true,
   },
   {
-    id: 'shape', label: '外形', group: 'craft', impact: 'mid',
-    hint: '異形（不規則輪廓）只能搭雷切邊，不能包邊。',
-    control: { kind: 'select', options: SHAPES },
-    aiFillable: false, default: 'circle',
-  },
-  {
     id: 'edge', label: '邊緣處理', group: 'craft', impact: 'low',
     hint: '包邊固定 3–4 mm、只能用在規則外形；雷切可做任意外形、邊可細到 1 mm。',
     control: { kind: 'select', options: EDGES },
@@ -321,7 +325,7 @@ function build(values: Record<string, string>, modes: Record<string, FillMode>) 
 
   const craft = craftById(values.craft || 'embroidery');
   const size = Number(values.size_mm || '75');
-  const shape = SHAPES.find((s) => s.value === (values.shape || 'circle'));
+  const shape = shapeById(values.shape || 'circle');
   const notes = checkManufacturing(values);
 
   const theme = r('theme').value || '童軍紀念章';
@@ -361,7 +365,7 @@ function build(values: Record<string, string>, modes: Record<string, FillMode>) 
   j.kv('detail_density', kw('detail'), 'detail');
   j.kvForce(
     'silhouette',
-    `${shape?.keywords ?? 'circular badge'}, designed to read clearly at ${size} mm across`,
+    `${shape.keywords}, designed to read clearly at ${size} mm across`,
     'shape',
     false,
     false
@@ -447,7 +451,7 @@ function specSheet(
   notes: { zh: string }[]
 ): ExtraOutput {
   const craft = craftById(values.craft || 'embroidery');
-  const shape = SHAPES.find((s) => s.value === (values.shape || 'circle'))?.label ?? '圓形';
+  const shape = shapeById(values.shape || 'circle').label;
   const edge = EDGES.find((e) => e.value === (values.edge || 'merrow'))?.label ?? '包邊';
   const backing = BACKINGS.find((b) => b.value === (values.backing || 'iron'))?.label ?? '軟膠（熱熔）';
   const coverage = COVERAGE.find((c) => c.value === (values.coverage || 'full'))?.label ?? '100% 滿繡';
@@ -508,4 +512,16 @@ export const patchSystem: CardSystem = {
   zones,
   fields,
   build,
+  outline: (values) => {
+    const sh = shapeById(values.shape || 'circle');
+    const box = fitBox({ x: 26, y: 26, w: VB.w - 52, h: VB.h - 52 }, sh.ratio);
+    const edge = values.edge || 'merrow';
+    return {
+      d: sh.path(box),
+      fieldId: 'shape',
+      note:
+        `外框：${sh.label} · ${sh.merrowable ? '可包邊' : '只能雷切'}` +
+        (edge === 'merrow' && !sh.merrowable ? ' —— 目前選了包邊，工廠做不出來，請改雷切。' : ''),
+    };
+  },
 };

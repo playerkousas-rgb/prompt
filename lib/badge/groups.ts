@@ -21,3 +21,16 @@ export const WOGGLE_GROUPS: GroupDef[] = [
   { id: 'text', label: '刻字', desc: '名字、團號、年份' },
   { id: 'style', label: '風格與配色', desc: '質感與顏色' },
 ];
+
+/**
+ * 組合章（一套幾片拼起來）。
+ * 順序刻意是：先母版 → 再切法 → 才輪到每片 —— 這就是正確的設計順序，
+ * 先把整張圖想完，再決定刀要落在哪裡。
+ */
+export const SET_GROUPS: GroupDef[] = [
+  { id: 'master', label: '母版', desc: '整套拼起來是一張什麼圖、外框是什麼形狀' },
+  { id: 'split', label: '切法', desc: '怎麼切、切幾片 —— 切縫就是設計的一部分' },
+  { id: 'pieces', label: '每片', desc: '每一片各自的主角與文字' },
+  { id: 'style', label: '風格與配色', desc: '全套必須共用同一套色，否則拼起來會打架' },
+  { id: 'craft', label: '工藝', desc: '最後再選。每一片都要各自長出自己的邊' },
+];

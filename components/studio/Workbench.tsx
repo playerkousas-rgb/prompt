@@ -302,7 +302,7 @@ function Inner({
 
           <div className="min-h-0 flex-1 overflow-y-auto p-4">
             {centerTab === 'anatomy' ? (
-              <CardAnatomy system={system} onPickField={pickField} simple={simple} />
+              <CardAnatomy system={system} values={state.values} onPickField={pickField} simple={simple} />
             ) : (
               <ResultPanel imageUrl={imageUrl} loading={loading} error={error} provider={provider.label} />
             )}
