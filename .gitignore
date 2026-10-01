@@ -9,3 +9,6 @@ dist
 *.tsbuildinfo
 next-env.d.ts
 .DS_Store
+
+# 底圖生成過程的大張 PNG，不入庫
+public/base/src-*.png
