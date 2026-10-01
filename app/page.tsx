@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ArrowRight, Gem, Layers, MousePointerClick, KeyRound, Sparkles, Wrench } from 'lucide-react';
+import { ArrowRight, Gem, Layers, MousePointerClick, KeyRound, Sparkles, Wrench, Gift } from 'lucide-react';
 
 export default function Home() {
   return (
@@ -13,7 +13,7 @@ export default function Home() {
         </p>
       </header>
 
-      <div className="mb-12 grid gap-4 sm:grid-cols-2">
+      <div className="mb-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Link
           href="/card"
           className="group panel relative overflow-hidden p-6 transition hover:border-cyan-400/60"
@@ -43,6 +43,22 @@ export default function Home() {
             紀念章還會多給一份<strong className="text-slate-300">可以直接寄給工廠的中文規格單</strong>。
           </p>
           <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-400">
+            開始 <ArrowRight size={13} className="transition group-hover:translate-x-1" />
+          </span>
+        </Link>
+        <Link
+          href="/gift"
+          className="group panel relative overflow-hidden p-6 transition hover:border-sky-400/60"
+        >
+          <div className="mb-3 inline-flex rounded-xl bg-sky-400/10 p-2.5 text-sky-400">
+            <Gift size={22} />
+          </div>
+          <h2 className="mb-1 text-xl font-bold text-slate-100">紀念品</h2>
+          <p className="mb-4 text-xs leading-relaxed text-slate-400">
+            重點是<strong className="text-slate-300">先把平面圖設計完</strong>，之後只是放到哪一種東西上：
+            T 恤、帆布袋、馬克杯、鑰匙圈、毛巾、旗子…… 主視覺一張，套用提示詞一樣一段。
+          </p>
+          <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-sky-400">
             開始 <ArrowRight size={13} className="transition group-hover:translate-x-1" />
           </span>
         </Link>
