@@ -14,6 +14,7 @@ import { JsonWriter, PromptWriter, keywordsOf, makeResolver } from '../../schema
 import type { CardSystem, ExtraOutput, FieldDef, FillMode, ZoneDef } from '../../schema/types';
 import { WOGGLE_GROUPS } from '../groups';
 import { WOGGLE_TYPES, woggleTypeById, HOLD_BY_FAMILY } from '../woggleTypes';
+import { howToRead } from '../promptRules';
 
 const VB = { w: 640, h: 640 };
 
@@ -239,6 +240,12 @@ function build(values: Record<string, string>, modes: Record<string, FillMode>) 
 
   const j = new JsonWriter();
   j.open(null);
+  j.arr(
+    'how_to_read',
+    howToRead(engrave && values.engrave_style !== 'none' ? ['face.lettering'] : [], scarf ? 'neckerchief woggle (one folded neckerchief as a prop is allowed, but nobody wearing it)' : 'neckerchief woggle').map((t) => ({
+      text: t,
+    }))
+  );
   j.kv('subject', `Scout neckerchief woggle (neckerchief slide) — ${type.label}`, 'woggle_type');
   j.kv('use', kw('occasion'), 'occasion');
 
@@ -291,7 +298,7 @@ function build(values: Record<string, string>, modes: Record<string, FillMode>) 
   j.kv('art_direction', kw('art_style'), 'art_style');
   j.kv('material_colour', material, 'material_color');
   j.kv('surface', kw('finish'), 'finish');
-  j.kvForce('making_note', type.note, 'woggle_type');
+  j.kvForce('making_note', type.noteEn, 'woggle_type');
   j.kvForce(
     'constraint',
     'The whole object is only a few centimetres across — bold shapes only, no fine detail, nothing that would vanish at thumbnail size.',

@@ -12,6 +12,8 @@ import type { CardSystem, ExtraOutput, FieldDef, FillMode, ZoneDef } from '../..
 import { BADGE_GROUPS } from '../groups';
 import { CRAFTS, EDGES, BACKINGS, COVERAGE, craftById, checkManufacturing } from '../craft';
 import { BADGE_SHAPES as SHAPES, shapeById, fitBox } from '../shapes';
+import { howToRead, LETTERING_RULES } from '../promptRules';
+import { woggleSystem } from './woggle';
 
 // 畫布用正方形 —— 章多半是圓的，用卡牌的 630×880 會很怪
 const VB = { w: 640, h: 640 };
@@ -27,7 +29,7 @@ const zones: ZoneDef[] = [
   { id: 'bottomarc', label: '下緣文字弧', fieldIds: ['text_bottom', 'text_layout'], x: 110, y: 506, w: 420, h: 72 },
   { id: 'year', label: '年份 / 屆數', fieldIds: ['year'], x: 258, y: 452, w: 124, h: 46 },
   { id: 'unit', label: '團號 / 單位', fieldIds: ['unit'], x: 36, y: 288, w: 92, h: 56 },
-  { id: 'back', label: '背面（底材與背膠）', fieldIds: ['craft', 'backing', 'coverage'], x: 452, y: 452, w: 160, h: 66 },
+  { id: 'back', label: '背面（底材與背膠）', fieldIds: ['craft', 'backing', 'coverage', 'with_woggle'], x: 452, y: 452, w: 160, h: 66 },
   { id: 'wear', label: '佩戴位置與用途', fieldIds: ['badge_use', 'wear_place'], x: 28, y: 452, w: 160, h: 66 },
 ];
 
@@ -288,6 +290,19 @@ const fields: FieldDef[] = [
 
   // ---- 工藝（最後才問）----
   {
+    id: 'with_woggle', label: '要不要順便出配套巾圈', group: 'craft', impact: 'low',
+    hint: '同一個主題、同一組配色，多給一份巾圈的生圖 JSON（附在提示詞下面）。',
+    control: { kind: 'select', options: [
+      { value: 'none', label: '不用' },
+      { value: 'pvc', label: '要：PVC 軟膠巾圈' },
+      { value: 'metal', label: '要：金屬琺瑯巾圈' },
+      { value: 'print3d', label: '要：3D 列印巾圈' },
+      { value: 'leather_plate', label: '要：皮片巾圈' },
+      { value: 'fabric', label: '要：繡面巾圈' },
+    ] },
+    aiFillable: false, default: 'none',
+  },
+  {
     id: 'craft', label: '工藝', group: 'craft', impact: 'mid',
     hint: '對生圖只是一句材質描述；對工廠才是規格。選完下面會自動檢查做不做得出來。',
     control: { kind: 'select', options: CRAFTS.map((c) => ({ value: c.value, label: c.label, desc: c.desc, keywords: c.keywords })) },
@@ -354,6 +369,20 @@ function build(values: Record<string, string>, modes: Record<string, FillMode>) 
   // --- 主輸出 JSON ---
   const j = new JsonWriter();
   j.open(null);
+  j.arr(
+    'how_to_read',
+    howToRead(
+      noText
+        ? []
+        : [
+            textTop && 'typography.top_text_zh',
+            textBottom && 'typography.bottom_text_en',
+            year && 'typography.year',
+            unit && 'typography.unit',
+          ].filter(Boolean) as string[],
+      'embroidered patch'
+    ).map((t) => ({ text: t }))
+  );
   j.kv('subject', `Scout commemorative patch artwork — ${theme}`, 'theme');
   j.kv('badge_use', kw('badge_use'), 'badge_use');
 
@@ -437,7 +466,7 @@ function build(values: Record<string, string>, modes: Record<string, FillMode>) 
     jsonLines: lines,
     plain: lines.map((l) => l.text).join('\n'),
     negative: NEGATIVE,
-    extras: [specSheet(values, notes)],
+    extras: [...matchingWoggle(values, modes), specSheet(values, notes)],
   };
 }
 
@@ -490,6 +519,62 @@ function specSheet(
       `3. 含色數上限，超色如何計價\n` +
       `4. 交期（含海運／空運）\n5. 是否提供車線／包邊顏色色卡`,
   };
+}
+
+
+/**
+ * 配套巾圈：把章的主題、符號、配色、風格原封不動搬到巾圈系統，
+ * 直接借用巾圈的 build() 產出第二份生圖 JSON —— 兩件東西才會真的像一套。
+ */
+function matchingWoggle(values: Record<string, string>, modes: Record<string, FillMode>): ExtraOutput[] {
+  const type = values.with_woggle || 'none';
+  if (type === 'none') return [];
+
+  // 風格要配合材質：皮革 / 布面才適合「傳統木章感」，軟膠與金屬走現代極簡
+  const soft = ['leather_plate', 'fabric', 'wood'].includes(type);
+  const styleMap: Record<string, string> = {
+    retro_patch: soft ? 'heritage' : 'minimal',
+    flat_vector: 'minimal',
+    kawaii: 'playful',
+    line_crest: 'minimal',
+    painted: soft ? 'handmade' : 'minimal',
+  };
+  // 給生圖 AI 的配色要用英文色名，不要用中文選項標籤
+  const paletteWord =
+    values.palette === 'custom'
+      ? (values.palette_custom || '').trim()
+      : PALETTES.find((p) => p.value === values.palette)?.keywords ?? '';
+
+  const wv: Record<string, string> = {
+    woggle_type: type,
+    occasion: values.badge_use === 'event' ? 'camp' : 'troop',
+    emblem: (values.motif || '').trim() || (values.theme || '').trim(),
+    symbols: values.symbols || 'none',
+    mount: 'back_loop',
+    face_mm: '30 × 30',
+    inner_mm: '22',
+    height_mm: '25',
+    engrave_text: (values.year || '').trim() || (values.unit || '').trim(),
+    engrave_style: 'relief',
+    art_style: styleMap[values.art_style || 'retro_patch'] ?? 'heritage',
+    material_color: paletteWord,
+    color_count: values.color_count || '3',
+    qty: '100',
+    finish: 'matte',
+    scarf_color: '',
+  };
+  const wm: Record<string, FillMode> = {};
+  for (const k of Object.keys(wv)) wm[k] = 'locked';
+
+  const out = woggleSystem.build(wv, wm);
+  return [
+    {
+      id: 'woggle',
+      label: '配套巾圈的生圖 JSON',
+      desc: '沿用同一個主題、符號與配色，兩件擺在一起才像一套',
+      text: out.plain,
+    },
+  ];
 }
 
 export const patchSystem: CardSystem = {

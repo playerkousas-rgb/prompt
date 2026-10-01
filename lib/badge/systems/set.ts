@@ -25,6 +25,7 @@ import { SET_GROUPS } from '../groups';
 import { BADGE_SHAPES, shapeById, fitBox, SPLITS, splitById } from '../shapes';
 import { CRAFTS, EDGES, craftById } from '../craft';
 import { ART_STYLES, PALETTES } from './patch';
+import { howToRead } from '../promptRules';
 
 const VB = { w: 640, h: 640 };
 
@@ -345,6 +346,13 @@ function build(values: Record<string, string>, modes: Record<string, FillMode>) 
   // --- 主輸出：母圖 ---------------------------------------------------------
   const j = new JsonWriter();
   j.open(null);
+  j.arr(
+    'how_to_read',
+    howToRead(
+      (values.master_text || '').trim() ? ['typography.set_wide_text'] : [],
+      values.split === 'series' ? 'series of patches, shown side by side' : 'assembled patch set'
+    ).map((t) => ({ text: t }))
+  );
   j.kv('subject', `Scout commemorative patch SET — ${values.set_theme || ''}, the complete assembled artwork`, 'set_theme');
   j.kvForce(
     'stage',
