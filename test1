@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TCG JSON Prompt Master - Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
+        body { font-family: 'Noto Sans TC', sans-serif; background: #0a0f1c; color: #e2e8f0; }
+        .glass { background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(20px); border: 1px solid rgba(148, 163, 184, 0.25); }
+        .tab-active { background: #22d3ee; color: #0f172a; font-weight: 900; }
+    </style>
+</head>
+<body class="min-h-screen py-12 px-4">
+    <div class="max-w-6xl mx-auto">
+        <div class="text-center mb-10">
+            <h1 class="text-5xl font-black tracking-tighter bg-gradient-to-r from-cyan-400 to-violet-500 bg-clip-text text-transparent">
+                TCG JSON PROMPT MASTER
+            </h1>
+            <p class="text-slate-400 mt-2">High-Detail English JSON for AI Image Generators </p>
+        </div>
+
+        <!-- 卡種切換 -->
+        <div class="glass rounded-3xl p-2 mb-8 flex justify-center gap-2 flex-wrap">
+            <button onclick="setSystem('pokemon')" id="tab-pokemon" class="tab-active px-8 py-3 rounded-2xl text-sm font-bold">Pokémon</button>
+            <button onclick="setSystem('onepiece')" id="tab-onepiece" class="px-8 py-3 rounded-2xl text-sm font-bold">One Piece</button>
+            <button onclick="setSystem('yugioh')" id="tab-yugioh" class="px-8 py-3 rounded-2xl text-sm font-bold">Yu-Gi-Oh!</button>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- 左側輸入 -->
+            <div class="space-y-6">
+                <!-- Character Basic Info -->
+                <div class="glass rounded-3xl p-8">
+                    <h2 class="text-cyan-400 font-bold mb-4">Character Basic Info</h2>
+                    <div class="space-y-5">
+                        <div>
+                            <label class="block text-xs text-slate-400 mb-1">Name</label>
+                            <input id="name" type="text" value="貝登堡" class="w-full bg-slate-900 border border-slate-700 rounded-2xl px-5 py-4">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-slate-400 mb-1">Pose</label>
+                            <textarea id="pose" rows="2" class="w-full bg-slate-900 border border-slate-700 rounded-2xl px-5 py-4">右手作童軍三指敬禮,左手手持精靈球</textarea>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-slate-400 mb-1">Expression</label>
+                            <input id="expression" type="text" value="自信且充滿活力的認真神情" class="w-full bg-slate-900 border border-slate-700 rounded-2xl px-5 py-4">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 額外屬性設定（根據卡種顯示） -->
+                <div class="glass rounded-3xl p-8" id="extra-fields">
+                    <h2 class="text-cyan-400 font-bold mb-4">屬性與額外設定</h2>
+                    <div class="space-y-5">
+
+                        <!-- Pokémon Extra -->
+                        <div id="pokemon-extra">
+                            <div>
+                                <label class="block text-xs text-slate-400 mb-1">夥伴精靈名稱</label>
+                                <input id="partner_pokemon" type="text" value="噴火龍" class="w-full bg-slate-900 border border-slate-700 rounded-2xl px-5 py-4">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-slate-400 mb-1">精靈屬性</label>
+                                <select id="pokemon_type" class="w-full bg-slate-900 border border-slate-700 rounded-2xl px-5 py-4">
+                                    <option value="火">火</option>
+                                    <option value="草">草</option>
+                                    <option value="水">水</option>
+                                    <option value="電">電</option>
+                                    <option value="超能">超能</option>
+                                    <option value="惡">惡</option>
+                                    <option value="格鬥">格鬥</option>
+                                    <option value="鋼">鋼</option>
+                                    <option value="妖精">妖精</option>
+                                    <option value="龍">龍</option>
+                                    <option value="冰">冰</option>
+                                    <option value="地面">地面</option>
+                                    <option value="幽靈">幽靈</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- One Piece Extra -->
+                        <div id="onepiece-extra" class="hidden">
+                            <div>
+                                <label class="block text-xs text-amber-400 mb-1">卡牌顏色</label>
+                                <select id="op_color" class="w-full bg-slate-900 border border-slate-700 rounded-2xl px-5 py-4">
+                                    <option value="紅">紅 (Red)</option>
+                                    <option value="綠">綠 (Green)</option>
+                                    <option value="藍">藍 (Blue)</option>
+                                    <option value="紫">紫 (Purple)</option>
+                                    <option value="黑">黑 (Black)</option>
+                                    <option value="黃">黃 (Yellow)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Yu-Gi-Oh! 無需額外欄位，使用 Attribute 即可 -->
+                    </div>
+                </div>
+
+                <!-- Background -->
+                <div class="glass rounded-3xl p-8">
+                    <h2 class="text-cyan-400 font-bold mb-4">Background (可留空讓 AI 自動生成)</h2>
+                    <div class="space-y-5">
+                        <div>
+                            <label class="block text-xs text-slate-400 mb-1">Setting</label>
+                            <input id="bg_setting" type="text" value="非洲草原上的廣闊平原" class="w-full bg-slate-900 border border-slate-700 rounded-2xl px-5 py-4">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-slate-400 mb-1">Details</label>
+                            <textarea id="bg_details" rows="2" class="w-full bg-slate-900 border border-slate-700 rounded-2xl px-5 py-4">遠處有岩石、山丘與稀疏的樹木</textarea>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-slate-400 mb-1">Atmosphere</label>
+                            <textarea id="bg_atmosphere" rows="2" class="w-full bg-slate-900 border border-slate-700 rounded-2xl px-5 py-4">金黃色的夕陽，背景有九尾與依貝在奔跑，充滿冒險與活力</textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 右側卡牌細節 -->
+            <div class="glass rounded-3xl p-8" id="card-details">
+                <h2 class="text-cyan-400 font-bold mb-6">Card Specific Details</h2>
+
+                <!-- Pokémon -->
+                <div id="pokemon-fields">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-xs text-slate-400">Move 1 Name</label>
+                            <input id="move1_name" value="指令" class="w-full bg-slate-900 border border-slate-700 rounded-2xl px-5 py-3 mt-1">
+                            <input id="move1_energy" value="2草" class="w-full bg-slate-900 border border-slate-700 rounded-2xl px-5 py-3 mt-2">
+                            <input id="move1_damage" value="50" class="w-full bg-slate-900 border border-slate-700 rounded-2xl px-5 py-3 mt-2">
+                        </div>
+                        <textarea id="move1_text" rows="3" class="bg-slate-900 border border-slate-700 rounded-2xl px-5 py-4">暈眩場上寶可夢並做成小量傷害。</textarea>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4 mt-6">
+                        <div>
+                            <label class="text-xs text-slate-400">Move 2 Name</label>
+                            <input id="move2_name" value="召喚" class="w-full bg-slate-900 border border-slate-700 rounded-2xl px-5 py-3 mt-1">
+                            <input id="move2_energy" value="5火" class="w-full bg-slate-900 border border-slate-700 rounded-2xl px-5 py-3 mt-2">
+                            <input id="move2_damage" value="250" class="w-full bg-slate-900 border border-slate-700 rounded-2xl px-5 py-3 mt-2">
+                        </div>
+                        <textarea id="move2_text" rows="3" class="bg-slate-900 border border-slate-700 rounded-2xl px-5 py-4">召喚其他寶可夢協助攻擊。</textarea>
+                    </div>
+                    <div class="mt-6">
+                        <label class="text-xs text-slate-400">Ability</label>
+                        <textarea id="ability" rows="2" class="w-full bg-slate-900 border border-slate-700 rounded-2xl px-5 py-4 mt-2">特能：領袖，在場時，其他寶可夢增加 30 點攻擊。</textarea>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4 mt-8">
+                        <div>
+                            <label class="text-xs text-slate-400">Finish Effect</label>
+                            <select id="finish_pokemon" class="w-full bg-slate-900 border border-slate-700 rounded-2xl px-5 py-4">
+                                <option value="Full Art Rainbow Holographic Foil">Full Art Rainbow Holographic Foil</option>
+                                <option value="SAR Special Art Rare">SAR Special Art Rare</option>
+                                <option value="HR Rainbow Rare">HR Rainbow Rare</option>
+                                <option value="UR Gold Metal Rare">UR Gold Metal Rare</option>
+                                <option value="Shiny Treasure Rare">Shiny Treasure Rare</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-xs text-slate-400">Card Number</label>
+                            <input id="card_number" value="G F 121/728" class="w-full bg-slate-900 border border-slate-700 rounded-2xl px-5 py-4">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- One Piece -->
+                <div id="onepiece-fields" class="hidden space-y-6">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-xs text-amber-400">Cost (Left Top)</label>
+                            <input id="op_cost" value="10" class="w-full bg-slate-900 border border-slate-700 rounded-2xl px-5 py-3">
+                        </div>
+                        <div>
+                            <label class="text-xs text-amber-400">Power (Right Top)</label>
+                            <input id="op_power" value="12000" class="w-full bg-slate-900 border border-slate-700 rounded-2xl px-5 py-3">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="text-xs text-amber-400">Card Name (Bottom)</label>
+                        <input id="op_card_name" value="貝登堡‧維爾" class="w-full bg-slate-900 border border-slate-700 rounded-2xl px-5 py-3">
+                    </div>
+                    <div>
+                        <label class="text-xs text-amber-400">Type / Subtitle (Bottom)</label>
+                        <input id="op_subtitle" value="四皇 / 童軍之父" class="w-full bg-slate-900 border border-slate-700 rounded-2xl px-5 py-3">
+                    </div>
+                    <div>
+                        <label class="text-xs text-amber-400">Effect Text (留空自動生成)</label>
+                        <textarea id="op_effect" rows="4" class="w-full bg-slate-900 border border-slate-700 rounded-2xl px-5 py-4">登場時，所有童軍卡牌進場。</textarea>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-xs text-amber-400">Finish Effect</label>
+                            <select id="finish_onepiece" class="w-full bg-slate-900 border border-slate-700 rounded-2xl px-5 py-4">
+                                <option value="Alt Art Parallel Rare">Alt Art Parallel Rare</option>
+                                <option value="Manga Rare">Manga Rare</option>
+                                <option value="SEC Secret Rare">SEC Secret Rare</option>
+                                <option value="Treasure Rare">Treasure Rare</option>
+                                <option value="SP Anniversary Card">SP Anniversary Card</option>
+                                <option value="Flagship Event Rare">Flagship Event Rare</option>
+                                <option value="Full Art Dynamic Foil">Full Art Dynamic Foil</option>
+                                <option value="Special Illustration Rare (Gold Etched)">Special Illustration Rare (Gold Etched)</option>
+                                <option value="Silver Prismatic Parallel">Silver Prismatic Parallel</option>
+                                <option value="Manga Rare (Red Variant)">Manga Rare (Red Variant)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-xs text-amber-400">Card Number</label>
+                            <input id="op_card_number" value="P-041" class="w-full bg-slate-900 border border-slate-700 rounded-2xl px-5 py-4">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Yu-Gi-Oh! -->
+                <div id="yugioh-fields" class="hidden space-y-6">
+                    <div>
+                        <label class="text-xs text-purple-400">Card Name</label>
+                        <input id="yg_name" value="童軍之父 貝登堡" class="w-full bg-slate-900 border border-slate-700 rounded-2xl px-5 py-3 mt-1">
+                    </div>
+                    <div class="grid grid-cols-4 gap-4">
+                        <div>
+                            <label class="text-xs text-purple-400">Attribute</label>
+                            <select id="yg_attribute" class="w-full bg-slate-900 border border-slate-700 rounded-2xl px-5 py-3">
+                                <option value="LIGHT">LIGHT (光)</option>
+                                <option value="DARK">DARK (暗)</option>
+                                <option value="DIVINE">DIVINE (神)</option>
+                                <option value="FIRE">FIRE (炎)</option>
+                                <option value="WATER">WATER (水)</option>
+                                <option value="WIND">WIND (風)</option>
+                                <option value="EARTH">EARTH (地)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-xs text-purple-400">Level</label>
+                            <input id="yg_level" value="10" class="w-full bg-slate-900 border border-slate-700 rounded-2xl px-5 py-3">
+                        </div>
+                        <div>
+                            <label class="text-xs text-purple-400">ATK</label>
+                            <input id="yg_atk" value="∞" class="w-full bg-slate-900 border border-slate-700 rounded-2xl px-5 py-3">
+                        </div>
+                        <div>
+                            <label class="text-xs text-purple-400">DEF</label>
+                            <input id="yg_def" value="∞" class="w-full bg-slate-900 border border-slate-700 rounded-2xl px-5 py-3">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="text-xs text-purple-400">Effect Text (留空自動生成)</label>
+                        <textarea id="yg_effect" rows="5" class="w-full bg-slate-900 border border-slate-700 rounded-2xl px-5 py-4 mt-2">這張卡在規則上也當作「貝登堡」卡使用。此卡的①②的效果1回合各使用1次。①：這張卡召喚·特殊召喚成功的場合，可以從卡組把1張「貝登堡」相關卡加入手牌。②：雙方主要階段發動效果，對方場上1張卡發動時，可以從卡組把1張「貝登堡」相關卡加入手牌。</textarea>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-xs text-purple-400">Finish Effect</label>
+                            <select id="finish_yugioh" class="w-full bg-slate-900 border border-slate-700 rounded-2xl px-5 py-4">
+                                <option value="Starlight Rare">Starlight Rare</option>
+                                <option value="Ultimate Rare">Ultimate Rare</option>
+                                <option value="Ghost Rare">Ghost Rare</option>
+                                <option value="QCSE 25th Anniversary Crushed Diamond">QCSE 25th Anniversary Crushed Diamond</option>
+                                <option value="Prismatic Secret Rare">Prismatic Secret Rare</option>
+                                <option value="20th Anniversary Red Letter Rare">20th Anniversary Red Letter Rare</option>
+                                <option value="Collector Rare">Collector Rare</option>
+                                <option value="God Rare">God Rare</option>
+                                <option value="Hieroglyphic Prismatic Rare">Hieroglyphic Prismatic Rare</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-xs text-purple-400">Card Number</label>
+                            <input id="yg_card_number" value="DDX-001" class="w-full bg-slate-900 border border-slate-700 rounded-2xl px-5 py-4">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex justify-center mt-12">
+            <button onclick="generateJSON()"
+                    class="bg-gradient-to-r from-cyan-500 to-violet-600 hover:brightness-110 px-20 py-7 rounded-3xl text-xl font-black tracking-widest shadow-2xl">
+                Generate Structured JSON Prompt
+            </button>
+        </div>
+
+        <!-- 結果區 -->
+        <div id="resultBox" class="hidden mt-12 glass rounded-3xl p-10">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-bold text-cyan-400">Generated JSON Prompt（請複製貼上）</h3>
+            </div>
+            <pre id="finalJSON" class="bg-slate-950 p-8 rounded-2xl border border-slate-700 font-mono text-sm leading-relaxed overflow-auto max-h-[520px] whitespace-pre-wrap"></pre>
+        </div>
+    </div>
+
+    <script>
+        let currentSystem = 'pokemon';
+
+        function setSystem(sys) {
+            currentSystem = sys;
+            document.querySelectorAll('#tab-pokemon, #tab-onepiece, #tab-yugioh').forEach(btn => {
+                btn.classList.toggle('tab-active', btn.id === `tab-${sys}`);
+            });
+
+            document.getElementById('pokemon-fields').classList.toggle('hidden', sys !== 'pokemon');
+            document.getElementById('onepiece-fields').classList.toggle('hidden', sys !== 'onepiece');
+            document.getElementById('yugioh-fields').classList.toggle('hidden', sys !== 'yugioh');
+
+            // 控制額外屬性欄位顯示
+            document.getElementById('pokemon-extra').classList.toggle('hidden', sys !== 'pokemon');
+            document.getElementById('onepiece-extra').classList.toggle('hidden', sys !== 'onepiece');
+        }
+
+        function generateJSON() {
+            const name = document.getElementById('name').value || "貝登堡";
+            const pose = document.getElementById('pose').value || "";
+            const expression = document.getElementById('expression').value || "";
+            const bg_setting = document.getElementById('bg_setting').value || "";
+            const bg_details = document.getElementById('bg_details').value || "";
+            const bg_atmosphere = document.getElementById('bg_atmosphere').value || "";
+
+            let jsonData = {
+                subject: `2D anime style character "${name}" based on reference photo`,
+                art_style: {
+                    rendering: "Vibrant cel-shaded anime style, high contrast, clean sharp linework, dramatic lighting, masterpiece, best quality, ultra detailed, strong motion lines, dynamic composition",
+                    theme: ""
+                },
+                character_details: {
+                    pose: pose || "dynamic battle pose full of power",
+                    expression: expression || "confident and energetic expression",
+                    hair: "Please refer to the first image I uploaded.",
+                    clothing: "Please refer to the first image I uploaded."
+                },
+                background: {
+                    setting: bg_setting || "epic battle scene",
+                    details: bg_details || "",
+                    atmosphere: bg_atmosphere || ""
+                },
+                card_layout: {
+                    dimensions: "Standard 63x88mm card ratio, full-bleed illustration with proper TCG borders",
+                    ui_elements: []
+                },
+                visual_effects: {
+                    finish: "",
+                    lighting: "",
+                    texture: ""
+                }
+            };
+
+            // ====================== POKÉMON TCG ======================
+            if (currentSystem === 'pokemon') {
+                const partner = document.getElementById('partner_pokemon').value || "噴火龍";
+                const pType = document.getElementById('pokemon_type').value || "火";
+
+                const typeBG = {
+                    "草": "茂密原始叢林，發光藤蔓與巨大葉片包圍，綠色能量漩渦與漂浮孢子",
+                    "火": "爆發中的火山岩漿地帶，滾燙橙紅熔岩河流，空中飛舞火花與熱浪扭曲",
+                    "水": "暴雨中的海洋懸崖，巨浪拍打岩石，水柱與泡沫漩渦四濺",
+                    "電": "雷雨交加的夜間都市天台，強烈藍紫色閃電不斷劈落，電弧粒子充滿空氣",
+                    "超能": "扭曲的星際空間，破碎紫色時空裂縫與漂浮能量碎片",
+                    "惡": "血紅滿月的古老廢棄城堡，黑暗霧氣與爬行的黑影",
+                    "格鬥": "崩壞的古代競技場，石柱倒塌，地面布滿拳風衝擊波與裂痕",
+                    "鋼": "金屬工廠內部，熔融鋼水與機械齒輪，藍白色火花四射",
+                    "妖精": "夢幻粉紫色花海，漂浮魔法光球與彩虹光環",
+                    "龍": "雲層之上的龍之山脈，金色龍捲風能量與巨大龍影",
+                    "冰": "冰雪極地冰川與暴風雪，藍白色冰晶狂舞",
+                    "地面": "乾燥沙漠峽谷，沙塵暴與土黃色能量柱噴發",
+                    "幽靈": "陰森深夜墓園，藍色鬼火與扭曲黑影，濃霧籠罩"
+                };
+
+                const dynamicBG = typeBG[pType] || "高能量戰鬥場景，背景充滿爆炸光斑與屬性粒子";
+
+                jsonData.art_style.theme = "Official Pokémon TCG high-end illustration aesthetic, dynamic full-bleed action scene, vibrant cel-shaded 90s anime style, intense energy effects";
+
+                jsonData.character_details.main_character = { name: name, pose: pose || `全身肌肉緊繃，右手高舉精靈球準備投擲`, expression: expression || "自信熱血的表情" };
+                jsonData.character_details.partner_pokemon = { name: partner, pose: "與主角動作呼應，釋放強大終極技能", type: pType };
+
+                jsonData.background.setting = "高強度雙人聯動戰鬥場景";
+                jsonData.background.details = bg_details || dynamicBG;
+                jsonData.background.atmosphere = bg_atmosphere || `強烈爆炸與${pType}屬性粒子四射，極具張力`;
+
+                const move1Name = document.getElementById('move1_name').value || `${pType}屬性連擊`;
+                const move1Text = document.getElementById('move1_text').value || `與${partner}聯手釋放${pType}能量，造成大量傷害`;
+                const move2Name = document.getElementById('move2_name').value || `終極${pType}爆發`;
+                const move2Text = document.getElementById('move2_text').value || `召喚${partner}全力攻擊，引發毀滅性${pType}爆炸`;
+
+                jsonData.card_layout.ui_elements = [
+                    `Top: HP • ${pType}屬性符號`,
+                    `Card Name: 「${name} & ${partner}」 雙人聯動攻擊版`,
+                    `Move 1: "${move1Name}" Energy: ${document.getElementById('move1_energy').value || "2"+pType[0]} Damage: ${document.getElementById('move1_damage').value || "120"}`,
+                    `Move 1 Text: ${move1Text}`,
+                    `Move 2: "${move2Name}" Energy: ${document.getElementById('move2_energy').value || "4"+pType[0]} Damage: ${document.getElementById('move2_damage').value || "220"}`,
+                    `Move 2 Text: ${move2Text}`,
+                    `Ability: ${document.getElementById('ability').value || `聯手加成：${partner}在場時攻擊力提升`}`,
+                    `Card Number: ${document.getElementById('card_number').value || "G F 121/728"}`,
+                    "所有文字使用繁體中文，招式名帶有強烈戰鬥氣勢"
+                ];
+
+                const pokeFinish = document.getElementById('finish_pokemon').value;
+                jsonData.visual_effects.finish = pokeFinish;
+                jsonData.visual_effects.texture = pokeFinish.includes("Rainbow") ? "Full-bleed holographic with energy particles" : "High-detail dynamic action texture";
+                jsonData.visual_effects.lighting = `Dramatic battle lighting with strong ${pType} color contrast`;
+            }
+
+            // ====================== ONE PIECE ======================
+            else if (currentSystem === 'onepiece') {
+                const opColor = document.getElementById('op_color').value || "紅";
+
+                const colorBG = {
+                    "紅": "燃燒的戰場與熊熊火焰，紅色衝擊波與破壞痕跡",
+                    "綠": "茂密叢林與巨大植物，綠色藤蔓纏繞",
+                    "藍": "暴風雨中的大海，巨浪與藍色水柱",
+                    "紫": "神秘黑暗空間與紫色詭異能量",
+                    "黑": "漆黑夜空與血月，黑暗影子",
+                    "黃": "閃耀金色光芒與雷電，高速殘影"
+                };
+
+                jsonData.art_style.theme = "Official One Piece Card Game aesthetic, dynamic manga-style impact lines, high-saturation cinematic colors";
+
+                jsonData.background.setting = "激烈戰鬥場景";
+                jsonData.background.details = bg_details || colorBG[opColor] || "高張力海戰場面";
+                jsonData.background.atmosphere = bg_atmosphere || `${opColor}色調強烈能量爆發，充滿熱血與破壞力`;
+
+                const effectText = document.getElementById('op_effect').value || `登場時，${name}發動強力${opColor}屬性攻擊，所有相關卡牌獲得加成`;
+
+                jsonData.card_layout.ui_elements = [
+                    `Cost: ${document.getElementById('op_cost').value || "10"}`,
+                    `Power: ${document.getElementById('op_power').value || "12000"}`,
+                    `Name: ${name}`,
+                    `Subtitle: ${document.getElementById('op_subtitle').value || "四皇 / 童軍之父"}`,
+                    `Effect: ${effectText}`,
+                    `Card Number: ${document.getElementById('op_card_number').value || "P-041"}`
+                ];
+
+                const opFinish = document.getElementById('finish_onepiece').value;
+                jsonData.visual_effects.finish = opFinish;
+                jsonData.visual_effects.lighting = `Dramatic lighting with strong ${opColor} accents`;
+            }
+
+            // ====================== YU-GI-OH! ======================
+            else if (currentSystem === 'yugioh') {
+                const ygAttr = document.getElementById('yg_attribute').value || "LIGHT";
+
+                const attrBG = {
+                    "LIGHT": "聖潔金色光芒與神聖粒子",
+                    "DARK": "漆黑深淵與扭曲暗影",
+                    "FIRE": "熊熊烈焰與熔岩爆炸",
+                    "WATER": "深藍海洋與激流漩渦",
+                    "WIND": "狂風暴雨與綠色風刃",
+                    "EARTH": "古老岩石廢墟與大地裂痕",
+                    "DIVINE": "神域空間與金色神光"
+                };
+
+                jsonData.art_style.theme = "Yu-Gi-Oh! OCG official card art style, intricate fantasy detailing, sharp anime cel-shading";
+
+                jsonData.background.setting = "史詩級召喚戰鬥場面";
+                jsonData.background.details = bg_details || attrBG[ygAttr] || "神秘強大戰鬥場景";
+                jsonData.background.atmosphere = bg_atmosphere || `${ygAttr}屬性強烈能量爆發`;
+
+                const ygEffect = document.getElementById('yg_effect').value || `這張卡在規則上也當作「${name}」卡使用。召喚成功時可加入相關卡片。`;
+
+                jsonData.card_layout.ui_elements = [
+                    `Card Name: ${document.getElementById('yg_name').value || name}`,
+                    `Attribute: ${ygAttr}`,
+                    `Level: ${document.getElementById('yg_level').value || "10"} Stars`,
+                    `ATK/DEF: ${document.getElementById('yg_atk').value || "∞"} / ${document.getElementById('yg_def').value || "∞"}`,
+                    `Effect: ${ygEffect}`,
+                    `Card Number: ${document.getElementById('yg_card_number').value || "DDX-001"}`
+                ];
+
+                const ygoFinish = document.getElementById('finish_yugioh').value;
+                jsonData.visual_effects.finish = ygoFinish;
+                jsonData.visual_effects.lighting = `Mystical lighting with strong ${ygAttr} attribute emphasis`;
+            }
+
+            const jsonString = JSON.stringify(jsonData, null, 2);
+            document.getElementById('finalJSON').textContent = jsonString;
+            document.getElementById('resultBox').classList.remove('hidden');
+            document.getElementById('resultBox').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        window.onload = () => {
+            setSystem('pokemon');
+        };
+    </script>
+</body>
+</html>
