@@ -17,23 +17,38 @@
 > 中間那張圖是**版面對照示意圖，不是成品預覽**。
 > 實測下來，用 HTML/CSS 模擬印刷卡面的結果比不上「把好的提示詞丟給生圖模型」，
 > 所以這裡不做 CSS 擬真渲染 —— 成品一律交給 AI。
-> 需要對照真卡時，可用「參考底圖」上傳自己的圖（只存在瀏覽器，不會上傳）。
+> 每套系統都內建一張 AI 生成的範例卡當底圖（AVIF，三張合計 330 KB），
+> 區塊座標對齊其版面；可用濃度滑桿調整，或「換底圖」上傳自己的參考卡圖
+> （只存在瀏覽器，不會上傳）。
 
 ### 2. 影響力標示
 
 每個欄位都標了 `決定性` / `明顯` / `微調`，並照影響力排序，避免在不重要的格子上糾結。
 
-### 3. 鎖定 or 交給 AI
+### 3. 經典格式一字不改
+
+`test1` (`tcg-json-prompt-master.html`) 的 JSON 輸出完成度很高，所以它被**忠實移植**到
+`lib/card/classic.ts`，當作右側面板的**預設分頁**：鍵的順序、各屬性的中文背景字典、所有預設值、
+以及 `hair` / `clothing` 的 `"Please refer to the first image I uploaded."`
+（搭配真人照片做圖生圖的用法）全部原封保留。
+
+> 驗證方式：用 node 直接執行 `legacy/tcg-json-prompt-master.html` 裡的 `generateJSON()`，
+> 與新版輸出逐一比對 —— 三套系統的 JSON 結構、陣列長度與固定字串 100% 一致。
+>
+> 要調整提示詞風格請改 `systems/*.ts` 的新版輸出，**不要動 `classic.ts`**。
+
+### 4. 鎖定 or 交給 AI
 
 每個可代填的欄位都能一鍵切換：
 
 - 🔒 **鎖定** —— 用你填的內容（角色名、動作這種要精準的）
 - ✨ **AI 代填** —— 提示詞會改寫成「請模型自己想一個」（招式名、風味文字、圖鑑描述這種）
 
-### 4. 兩條出口
+### 5. 兩條出口
 
 - **自備 API Key 直接出圖**：OpenAI / Google Gemini·Imagen / Stability AI
-- **只要提示詞**：自然語言 / 結構化 JSON / 負面提示，複製走拿去 Midjourney、即夢等任何工具
+- **只要提示詞**：經典 JSON (test1) / 自然語言 / 結構化 JSON / 負面提示，複製走拿去 Midjourney、即夢等任何工具
+- 生圖時送出的，就是你**當下看著的那一份**提示詞（分頁上有「生圖會用這份」標記）
 - **零門檻**：Pollinations（FLUX）免金鑰，不用註冊就能先試構圖
 
 ---
@@ -89,7 +104,9 @@ components/studio/
   PromptPanel.tsx          右欄：分段高亮的提示詞輸出
   ResultPanel.tsx          出圖結果與下載
   SettingsModal.tsx        供應商與 API Key
+public/base/                 三張 AVIF 卡面底圖（pokemon / onepiece / yugioh）
 lib/card/
+  classic.ts               test1 原版 JSON 格式（忠實移植，勿改）
   types.ts                 欄位 / 區塊 / 片段的型別定義
   builder.ts               PromptWriter、JsonWriter、AI 代填解析
   systems/{pokemon,onepiece,yugioh}.ts
@@ -111,3 +128,7 @@ legacy/                    原本的三個單檔 HTML 工具（保留參考）
 - `tcg-json-prompt-master.html` —— 做卡的前身
 - `badge-craft-designer.html` —— 做章的前身（下一階段要搬進來）
 - `pokegen-switch-ui.html` —— Switch 圖鑑 UI 生成器（支線實驗）
+
+> `tcg-json-prompt-master.html` 的 JSON 輸出並未被取代 —— 它被**原封不動**移植到
+> `lib/card/classic.ts`，在工作台右側的「經典 JSON」分頁（預設分頁）輸出。
+> 已用 node 直接執行 test1 原始碼比對過，三套系統的 JSON 結構與固定字串 100% 一致。
