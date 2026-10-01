@@ -85,8 +85,32 @@ export class JsonWriter {
     return this;
   }
 
+  /** 一定會輸出，即使值是空字串（經典格式需要保留空欄位） */
+  kvForce(key: string, value: string, fieldId?: string, ai = false, comma = true) {
+    const safe = String(value ?? '').replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n');
+    this.lines.push({ text: `${this.pad()}"${key}": "${safe}"${comma ? ',' : ''}`, fieldId, ai });
+    return this;
+  }
+
   raw(key: string, value: string, comma = true) {
     this.lines.push({ text: `${this.pad()}"${key}": ${value}${comma ? ',' : ''}` });
+    return this;
+  }
+
+  /** 字串陣列，每個元素可以掛自己的來源欄位 */
+  arr(key: string, items: { text: string; fieldId?: string; ai?: boolean }[]) {
+    this.lines.push({ text: `${this.pad()}"${key}": [` });
+    this.depth++;
+    items.forEach((it, i) => {
+      const safe = it.text.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n');
+      this.lines.push({
+        text: `${this.pad()}"${safe}"${i < items.length - 1 ? ',' : ''}`,
+        fieldId: it.fieldId,
+        ai: it.ai,
+      });
+    });
+    this.depth--;
+    this.lines.push({ text: `${this.pad()}],` });
     return this;
   }
 

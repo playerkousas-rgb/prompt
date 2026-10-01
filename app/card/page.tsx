@@ -85,6 +85,10 @@ function Studio() {
 
   const result = useMemo(() => system.build(state.values, state.modes), [system, state]);
 
+  // 生圖時要送出的提示詞 —— 由右側面板「目前顯示的那一份」決定
+  const [activePrompt, setActivePrompt] = useState<string>('');
+  const handleActivePrompt = useCallback((t: string) => setActivePrompt(t), []);
+
   const [focusField, setFocusField] = useState<string | null>(null);
   const pickField = (id: string) => {
     setFocusField(id);
@@ -116,7 +120,7 @@ function Studio() {
           provider: settings.provider,
           apiKey: settings.keys[settings.provider] ?? '',
           model: settings.model,
-          prompt: result.plain,
+          prompt: activePrompt || result.plain,
           negative: result.negative,
           width: aspectDef.w,
           height: aspectDef.h,
@@ -259,7 +263,14 @@ function Studio() {
 
         {/* 右：提示詞 */}
         <section className="panel flex min-h-[460px] flex-col overflow-hidden xl:col-span-4 xl:min-h-0">
-          <PromptPanel system={system} result={result} onPickField={pickField} />
+          <PromptPanel
+            system={system}
+            result={result}
+            values={state.values}
+            modes={state.modes}
+            onPickField={pickField}
+            onActivePrompt={handleActivePrompt}
+          />
         </section>
       </main>
 

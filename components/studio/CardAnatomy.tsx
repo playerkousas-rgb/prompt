@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useRef, useState } from 'react';
-import { ImageUp, Eye, EyeOff, X } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { ImageUp, RotateCcw, Layers2 } from 'lucide-react';
 import type { CardSystem } from '@/lib/card/types';
 import { useHighlight } from './HighlightContext';
 
@@ -16,49 +16,47 @@ export function CardAnatomy({
   onPickField: (fieldId: string) => void;
 }) {
   const { resolved, setActive, togglePin } = useHighlight();
-  const [refImage, setRefImage] = useState<string | null>(null);
-  const [showRef, setShowRef] = useState(true);
+  const [customImage, setCustomImage] = useState<string | null>(null);
+  const [opacity, setOpacity] = useState(45);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  // 換系統時把自訂底圖清掉，回到該系統的預設底圖
+  useEffect(() => setCustomImage(null), [system.id]);
+
+  const baseSrc = customImage ?? system.baseImage ?? null;
   const fieldLabel = (id: string) => system.fields.find((f) => f.id === id)?.label ?? id;
 
-  // 哪些區塊要亮
   const isZoneActive = (fieldIds: string[]) => !!resolved && fieldIds.includes(resolved);
   const activeZones = system.zones.filter((z) => isZoneActive(z.fieldIds));
-  // 插圖窗/卡框這種包山包海的大區塊，只有在沒有更精確的小區塊時才亮
+  // 插圖窗 / 卡框這種大區塊，只有在沒有更精確的小區塊命中時才亮
   const hasPreciseHit = activeZones.some((z) => z.tone !== 'soft');
 
   return (
     <div className="flex h-full flex-col gap-3">
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex items-start justify-between gap-2">
         <div>
           <h2 className="text-sm font-semibold text-slate-200">卡面對照圖</h2>
           <p className="text-[11px] text-slate-500">
             滑過左邊欄位 → 這裡對應的位置會亮起來。{system.ratio}
           </p>
         </div>
-        <div className="flex items-center gap-1">
-          {refImage && (
-            <>
-              <button
-                className="btn-ghost !px-2 !py-1.5"
-                title={showRef ? '隱藏參考圖' : '顯示參考圖'}
-                onClick={() => setShowRef((v) => !v)}
-              >
-                {showRef ? <Eye size={14} /> : <EyeOff size={14} />}
-              </button>
-              <button className="btn-ghost !px-2 !py-1.5" title="移除參考圖" onClick={() => setRefImage(null)}>
-                <X size={14} />
-              </button>
-            </>
-          )}
+        <div className="flex shrink-0 items-center gap-1">
           <button
             className="btn-ghost !px-2.5 !py-1.5 text-xs"
-            title="上傳一張你自己的參考卡圖當底（只存在你的瀏覽器，不會上傳）"
+            title="換成你自己的參考卡圖（只存在你的瀏覽器，不會上傳）"
             onClick={() => fileRef.current?.click()}
           >
-            <ImageUp size={14} /> 參考底圖
+            <ImageUp size={14} /> 換底圖
           </button>
+          {customImage && (
+            <button
+              className="btn-ghost !px-2 !py-1.5"
+              title="回到預設底圖"
+              onClick={() => setCustomImage(null)}
+            >
+              <RotateCcw size={14} />
+            </button>
+          )}
           <input
             ref={fileRef}
             type="file"
@@ -68,8 +66,9 @@ export function CardAnatomy({
               const f = e.target.files?.[0];
               if (!f) return;
               const fr = new FileReader();
-              fr.onload = () => setRefImage(fr.result as string);
+              fr.onload = () => setCustomImage(fr.result as string);
               fr.readAsDataURL(f);
+              e.target.value = '';
             }}
           />
         </div>
@@ -96,25 +95,23 @@ export function CardAnatomy({
 
           <g clipPath="url(#cardclip)">
             <rect x="0" y="0" width={VB_W} height={VB_H} fill="url(#cardbg)" />
-            <rect x="0" y="0" width={VB_W} height={VB_H} fill="url(#grid)" />
+            {!baseSrc && <rect x="0" y="0" width={VB_W} height={VB_H} fill="url(#grid)" />}
 
-            {refImage && showRef && (
+            {baseSrc && (
               <image
-                href={refImage}
+                href={baseSrc}
                 x="0"
                 y="0"
                 width={VB_W}
                 height={VB_H}
                 preserveAspectRatio="xMidYMid slice"
-                opacity="0.55"
+                opacity={opacity / 100}
               />
             )}
 
-            {/* 系統識別色的頂部細條 */}
-            <rect x="0" y="0" width={VB_W} height="6" fill={system.accent} opacity="0.8" />
+            <rect x="0" y="0" width={VB_W} height="6" fill={system.accent} opacity="0.85" />
           </g>
 
-          {/* 區塊 */}
           {system.zones.map((z) => {
             const soft = z.tone === 'soft';
             const act = isZoneActive(z.fieldIds) && (!soft || !hasPreciseHit);
@@ -127,9 +124,9 @@ export function CardAnatomy({
                   width={z.w}
                   height={z.h}
                   rx={soft ? 16 : 8}
-                  fill={act ? 'rgba(34,211,238,0.22)' : soft ? 'rgba(148,163,184,0.03)' : 'rgba(148,163,184,0.06)'}
-                  stroke={act ? '#22d3ee' : soft ? 'rgba(148,163,184,0.22)' : 'rgba(148,163,184,0.35)'}
-                  strokeWidth={act ? 3 : 1.4}
+                  fill={act ? 'rgba(34,211,238,0.3)' : 'rgba(8,15,28,0.28)'}
+                  stroke={act ? '#22d3ee' : soft ? 'rgba(148,163,184,0.3)' : 'rgba(148,163,184,0.45)'}
+                  strokeWidth={act ? 3.5 : 1.4}
                   strokeDasharray={soft ? '7 6' : undefined}
                   onMouseEnter={() => setActive(z.fieldIds[0] ?? null)}
                   onClick={() => {
@@ -144,12 +141,15 @@ export function CardAnatomy({
                 </rect>
                 <text
                   className="zone-label"
-                  x={z.x + 10}
-                  y={z.y + (soft ? 26 : Math.min(z.h / 2 + 6, 24))}
-                  fontSize={soft ? 17 : 16}
-                  fill={act ? '#a5f3fc' : 'rgba(148,163,184,0.75)'}
+                  x={z.x + 9}
+                  y={z.y + (soft ? 25 : Math.min(z.h / 2 + 6, 23))}
+                  fontSize={soft ? 17 : 15}
+                  fill={act ? '#a5f3fc' : '#cbd5e1'}
+                  stroke="rgba(2,6,16,0.85)"
+                  strokeWidth="3.5"
+                  paintOrder="stroke"
                   fontWeight={act ? 700 : 500}
-                  opacity={act ? 1 : soft ? 0.55 : 0.8}
+                  opacity={act ? 1 : soft ? 0.6 : 0.85}
                 >
                   {z.label}
                 </text>
@@ -159,10 +159,26 @@ export function CardAnatomy({
         </svg>
       </div>
 
+      {baseSrc && (
+        <div className="flex items-center gap-2 px-1">
+          <Layers2 size={13} className="shrink-0 text-slate-500" />
+          <span className="shrink-0 text-[11px] text-slate-500">底圖濃度</span>
+          <input
+            type="range"
+            min={0}
+            max={85}
+            value={opacity}
+            onChange={(e) => setOpacity(Number(e.target.value))}
+            className="h-1 flex-1 cursor-pointer appearance-none rounded-full bg-slate-700 accent-cyan-400"
+          />
+          <span className="w-8 shrink-0 text-right font-mono text-[11px] text-slate-400">{opacity}%</span>
+        </div>
+      )}
+
       <p className="text-center text-[11px] leading-relaxed text-slate-500">
-        這是<span className="text-slate-300">版面對照示意圖</span>，不是成品預覽 —— 成品由右側 AI 生成。
+        底圖是 AI 生成的範例卡，純粹用來<span className="text-slate-300">對照版面位置</span>，不是成品預覽。
         <br />
-        點一下區塊可以把對應欄位<span className="text-cyan-300">釘選</span>住。
+        點一下區塊可以把對應欄位<span className="text-cyan-300">釘選</span>住；也可以換成你自己的參考卡圖。
       </p>
     </div>
   );

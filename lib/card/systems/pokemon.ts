@@ -1,14 +1,15 @@
 import { BASE_NEGATIVE, JsonWriter, PromptWriter, keywordsOf, makeResolver } from '../builder';
+import { classicFinishField } from '../classic';
 import type { CardSystem, FieldDef, FillMode, ZoneDef } from '../types';
 
 // ---------------------------------------------------------------------------
 // 卡面示意圖：630 x 880 viewBox，比例同實體卡 63 x 88 mm
 // ---------------------------------------------------------------------------
 const zones: ZoneDef[] = [
-  { id: 'stage', label: '階段', fieldIds: ['stage'], x: 40, y: 42, w: 120, h: 40 },
-  { id: 'name', label: '卡名', fieldIds: ['name', 'subject_type'], x: 168, y: 36, w: 258, h: 52 },
-  { id: 'hp', label: 'HP', fieldIds: ['hp'], x: 434, y: 38, w: 108, h: 48 },
-  { id: 'type', label: '屬性', fieldIds: ['energy_type'], x: 550, y: 38, w: 48, h: 48 },
+  { id: 'stage', label: '階段', fieldIds: ['stage'], x: 16, y: 26, w: 70, h: 28 },
+  { id: 'name', label: '卡名', fieldIds: ['name', 'subject_type'], x: 91, y: 27, w: 365, h: 46 },
+  { id: 'hp', label: 'HP', fieldIds: ['hp'], x: 462, y: 24, w: 96, h: 48 },
+  { id: 'type', label: '屬性', fieldIds: ['energy_type'], x: 562, y: 26, w: 52, h: 50 },
   {
     id: 'art',
     label: '插圖窗（AI 生圖的主戰場）',
@@ -17,28 +18,28 @@ const zones: ZoneDef[] = [
       'bg_setting', 'bg_details', 'bg_atmosphere', 'time_light', 'camera',
       'art_style', 'color_mood', 'line_quality', 'energy_type', 'detail_level',
     ],
-    x: 40, y: 98, w: 558, h: 360, tone: 'soft',
+    x: 22, y: 82, w: 588, h: 410, tone: 'soft',
   },
-  { id: 'category', label: '分類 / 身高體重', fieldIds: ['category'], x: 40, y: 468, w: 558, h: 34 },
-  { id: 'ability', label: '特性', fieldIds: ['ability_name', 'ability_text'], x: 40, y: 512, w: 558, h: 74 },
+  { id: 'category', label: '分類 / 身高體重', fieldIds: ['category'], x: 40, y: 496, w: 554, h: 22 },
+  { id: 'ability', label: '特性', fieldIds: ['ability_name', 'ability_text'], x: 40, y: 522, w: 554, h: 72 },
   {
     id: 'attack1', label: '招式 1',
     fieldIds: ['attack1_cost', 'attack1_name', 'attack1_dmg', 'attack1_text'],
-    x: 40, y: 596, w: 558, h: 82,
+    x: 36, y: 600, w: 572, h: 52,
   },
   {
     id: 'attack2', label: '招式 2',
     fieldIds: ['attack2_cost', 'attack2_name', 'attack2_dmg', 'attack2_text'],
-    x: 40, y: 688, w: 558, h: 82,
+    x: 36, y: 658, w: 572, h: 78,
   },
   {
     id: 'weak', label: '弱點 / 抵抗 / 撤退',
     fieldIds: ['weakness', 'resistance', 'retreat'],
-    x: 40, y: 780, w: 558, h: 36,
+    x: 28, y: 762, w: 582, h: 30,
   },
-  { id: 'flavor', label: '風味文字', fieldIds: ['flavor'], x: 40, y: 822, w: 390, h: 32 },
-  { id: 'setnum', label: '編號 / 繪師', fieldIds: ['set_number', 'illustrator'], x: 438, y: 822, w: 160, h: 32 },
-  { id: 'frame', label: '卡框 / 箔面', fieldIds: ['rarity', 'foil', 'border'], x: 12, y: 12, w: 606, h: 856, tone: 'soft' },
+  { id: 'flavor', label: '風味文字', fieldIds: ['flavor'], x: 342, y: 806, w: 270, h: 34 },
+  { id: 'setnum', label: '編號 / 繪師', fieldIds: ['set_number', 'illustrator'], x: 28, y: 806, w: 192, h: 46 },
+  { id: 'frame', label: '卡框 / 箔面', fieldIds: ['rarity', 'foil', 'border'], x: 8, y: 8, w: 614, h: 864, tone: 'soft' },
 ];
 
 // ---------------------------------------------------------------------------
@@ -54,6 +55,9 @@ const ENERGY = [
   { value: 'metal', label: '鋼', swatch: '#8f9aa6', keywords: 'Metal type, brushed steel silver sheen, sparks, hard specular highlights' },
   { value: 'fairy', label: '妖精', swatch: '#ec6fa6', keywords: 'Fairy type, soft pink glow, glittering bokeh, pastel bloom' },
   { value: 'dragon', label: '龍', swatch: '#b08a3e', keywords: 'Dragon type, antique gold and deep indigo aura, ancient rune swirls' },
+  { value: 'ice', label: '冰', swatch: '#7fd4e8', keywords: 'Ice type, pale cyan frost aura, swirling ice crystals and snow flurries' },
+  { value: 'ground', label: '地面', swatch: '#c2994a', keywords: 'Ground type, ochre dust storm, erupting earth pillars, grit in the air' },
+  { value: 'ghost', label: '幽靈', swatch: '#6b5b8a', keywords: 'Ghost type, pale blue wisp flames, warped shadows, creeping fog' },
   { value: 'colorless', label: '無', swatch: '#d8d2c6', keywords: 'Colorless type, neutral ivory and silver wind aura, feather motes' },
 ];
 
@@ -546,8 +550,11 @@ function build(values: Record<string, string>, modes: Record<string, FillMode>) 
   };
 }
 
+fields.push(classicFinishField('pokemon'));
+
 export const pokemonSystem: CardSystem = {
   id: 'pokemon',
+  baseImage: '/base/pokemon.avif',
   label: 'Pokémon',
   sublabel: '寶可夢 TCG',
   accent: '#f5c518',

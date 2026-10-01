@@ -1,21 +1,23 @@
 import { BASE_NEGATIVE, JsonWriter, PromptWriter, keywordsOf, makeResolver } from '../builder';
+import { classicFinishField } from '../classic';
 import type { CardSystem, FieldDef, FillMode, ZoneDef } from '../types';
 
 const zones: ZoneDef[] = [
-  { id: 'cost', label: '費用', fieldIds: ['cost'], x: 34, y: 34, w: 86, h: 86 },
-  { id: 'attr', label: '屬性圖示', fieldIds: ['attribute'], x: 510, y: 34, w: 86, h: 86 },
+  { id: 'cost', label: '費用', fieldIds: ['cost'], x: 12, y: 14, w: 76, h: 68 },
+  { id: 'attr', label: '屬性圖示', fieldIds: ['attribute'], x: 556, y: 12, w: 66, h: 64 },
   {
     id: 'art', label: '滿版插圖（OP 卡的插圖是整張滿版）',
     fieldIds: ['name', 'pose', 'expression', 'outfit', 'bg_setting', 'bg_details', 'bg_atmosphere', 'art_style', 'color', 'camera', 'haki'],
-    x: 18, y: 18, w: 594, h: 600, tone: 'soft',
+    x: 20, y: 20, w: 592, h: 512, tone: 'soft',
   },
-  { id: 'power', label: '力量值', fieldIds: ['power'], x: 34, y: 470, w: 150, h: 60 },
-  { id: 'counter', label: '反擊值', fieldIds: ['counter'], x: 34, y: 540, w: 110, h: 50 },
-  { id: 'name', label: '卡名帶', fieldIds: ['name'], x: 18, y: 626, w: 594, h: 58 },
-  { id: 'typeband', label: '特徵帶', fieldIds: ['tribe'], x: 18, y: 690, w: 594, h: 34 },
-  { id: 'effect', label: '效果文字框', fieldIds: ['effect_text', 'trigger'], x: 18, y: 730, w: 594, h: 100 },
-  { id: 'meta', label: '卡號 / 繪師 / 稀有度', fieldIds: ['set_number', 'illustrator', 'rarity'], x: 18, y: 838, w: 594, h: 30 },
-  { id: 'frame', label: '卡框 / 箔面', fieldIds: ['rarity', 'foil', 'card_kind'], x: 10, y: 10, w: 610, h: 860, tone: 'soft' },
+  { id: 'power', label: '力量值', fieldIds: ['power'], x: 13, y: 94, w: 58, h: 56 },
+  { id: 'counter', label: '反擊值', fieldIds: ['counter'], x: 13, y: 288, w: 36, h: 162 },
+  { id: 'effect', label: '效果文字框', fieldIds: ['effect_text', 'trigger'], x: 40, y: 538, w: 556, h: 176 },
+  { id: 'kind', label: '卡片種類帶', fieldIds: ['card_kind'], x: 126, y: 728, w: 390, h: 28 },
+  { id: 'name', label: '卡名帶', fieldIds: ['name'], x: 88, y: 758, w: 464, h: 40 },
+  { id: 'typeband', label: '特徵帶', fieldIds: ['tribe'], x: 167, y: 801, w: 318, h: 27 },
+  { id: 'meta', label: '卡號 / 繪師', fieldIds: ['set_number', 'illustrator'], x: 487, y: 803, w: 122, h: 26 },
+  { id: 'frame', label: '卡框 / 箔面', fieldIds: ['rarity', 'foil'], x: 6, y: 6, w: 618, h: 868, tone: 'soft' },
 ];
 
 const COLORS = [
@@ -237,8 +239,11 @@ function build(values: Record<string, string>, modes: Record<string, FillMode>) 
   };
 }
 
+fields.push(classicFinishField('onepiece'));
+
 export const onePieceSystem: CardSystem = {
   id: 'onepiece',
+  baseImage: '/base/onepiece.avif',
   label: 'One Piece',
   sublabel: '航海王卡牌',
   accent: '#ef4444',

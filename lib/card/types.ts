@@ -108,6 +108,8 @@ export interface CardSystem {
   accent: string;
   /** 卡面長寬比說明 */
   ratio: string;
+  /** 預設的卡面底圖（AVIF，用來對照版面位置，不是成品預覽） */
+  baseImage?: string;
   zones: ZoneDef[];
   fields: FieldDef[];
   build: (values: Record<string, string>, modes: Record<string, FillMode>) => BuildResult;

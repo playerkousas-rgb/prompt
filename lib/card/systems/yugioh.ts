@@ -1,22 +1,23 @@
 import { BASE_NEGATIVE, JsonWriter, PromptWriter, keywordsOf, makeResolver } from '../builder';
+import { classicFinishField } from '../classic';
 import type { CardSystem, FieldDef, FillMode, ZoneDef } from '../types';
 
 // 遊戲王卡比例為 59 × 86 mm，插圖窗是正方形 —— 這點跟寶可夢/OP 很不一樣
 const zones: ZoneDef[] = [
-  { id: 'name', label: '卡名', fieldIds: ['name'], x: 40, y: 40, w: 430, h: 56 },
-  { id: 'attr', label: '屬性球', fieldIds: ['attribute'], x: 486, y: 38, w: 60, h: 60 },
-  { id: 'level', label: '星數 / 階級', fieldIds: ['level'], x: 180, y: 108, w: 366, h: 40 },
+  { id: 'name', label: '卡名', fieldIds: ['name'], x: 21, y: 20, w: 486, h: 60 },
+  { id: 'attr', label: '屬性球', fieldIds: ['attribute'], x: 512, y: 25, w: 60, h: 54 },
+  { id: 'level', label: '星數 / 階級', fieldIds: ['level'], x: 244, y: 100, w: 278, h: 34 },
   {
     id: 'art', label: '插圖窗（正方形！構圖要以方形思考）',
     fieldIds: ['name', 'pose', 'expression', 'anatomy', 'bg_setting', 'bg_details', 'bg_atmosphere',
       'art_style', 'attribute', 'summon_fx', 'camera', 'palette'],
-    x: 76, y: 158, w: 434, h: 434, tone: 'soft',
+    x: 77, y: 156, w: 480, h: 460, tone: 'soft',
   },
-  { id: 'typeline', label: '種族 / 類型', fieldIds: ['monster_type', 'frame_type'], x: 40, y: 606, w: 506, h: 36 },
-  { id: 'effect', label: '效果文字框', fieldIds: ['effect_text', 'pendulum_text'], x: 40, y: 650, w: 506, h: 140 },
-  { id: 'atkdef', label: 'ATK / DEF', fieldIds: ['atk', 'def'], x: 300, y: 798, w: 246, h: 38 },
-  { id: 'meta', label: '卡號 / 密碼 / 繪師', fieldIds: ['set_code', 'illustrator'], x: 40, y: 798, w: 250, h: 38 },
-  { id: 'frame', label: '卡框 / 稀有度', fieldIds: ['frame_type', 'rarity', 'foil'], x: 14, y: 14, w: 602, h: 852, tone: 'soft' },
+  { id: 'typeline', label: '種族 / 類型', fieldIds: ['monster_type', 'frame_type'], x: 35, y: 650, w: 560, h: 36 },
+  { id: 'effect', label: '效果文字框', fieldIds: ['effect_text', 'pendulum_text'], x: 35, y: 688, w: 560, h: 104 },
+  { id: 'atkdef', label: 'ATK / DEF', fieldIds: ['atk', 'def'], x: 386, y: 794, w: 210, h: 32 },
+  { id: 'meta', label: '卡號 / 繪師', fieldIds: ['set_code', 'illustrator'], x: 29, y: 828, w: 212, h: 28 },
+  { id: 'frame', label: '卡框 / 稀有度', fieldIds: ['frame_type', 'rarity', 'foil'], x: 8, y: 8, w: 614, h: 864, tone: 'soft' },
 ];
 
 const FRAMES = [
@@ -251,8 +252,11 @@ function build(values: Record<string, string>, modes: Record<string, FillMode>) 
   };
 }
 
+fields.push(classicFinishField('yugioh'));
+
 export const yugiohSystem: CardSystem = {
   id: 'yugioh',
+  baseImage: '/base/yugioh.avif',
   label: 'Yu-Gi-Oh!',
   sublabel: '遊戲王 OCG',
   accent: '#a855f7',
