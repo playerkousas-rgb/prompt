@@ -1,6 +1,6 @@
-import { BASE_NEGATIVE, JsonWriter, PromptWriter, keywordsOf, makeResolver } from '../builder';
-import { classicFinishField } from '../classic';
-import type { CardSystem, FieldDef, FillMode, ZoneDef } from '../types';
+import { BASE_NEGATIVE, JsonWriter, PromptWriter, keywordsOf, makeResolver } from '../../schema/builder';
+import { referenceFields } from '../reference';
+import type { CardSystem, FieldDef, FillMode, ZoneDef } from '../../schema/types';
 
 // 遊戲王卡比例為 59 × 86 mm，插圖窗是正方形 —— 這點跟寶可夢/OP 很不一樣
 const zones: ZoneDef[] = [
@@ -9,7 +9,7 @@ const zones: ZoneDef[] = [
   { id: 'level', label: '星數 / 階級', fieldIds: ['level'], x: 244, y: 100, w: 278, h: 34 },
   {
     id: 'art', label: '插圖窗（正方形！構圖要以方形思考）',
-    fieldIds: ['name', 'pose', 'expression', 'anatomy', 'bg_setting', 'bg_details', 'bg_atmosphere',
+    fieldIds: ['ref_use', 'ref_keep', 'ref_strength', 'name', 'pose', 'expression', 'anatomy', 'bg_setting', 'bg_details', 'bg_atmosphere',
       'art_style', 'attribute', 'summon_fx', 'camera', 'palette'],
     x: 77, y: 152, w: 480, h: 468, tone: 'soft',
   },
@@ -17,7 +17,7 @@ const zones: ZoneDef[] = [
   { id: 'effect', label: '效果文字框', fieldIds: ['effect_text', 'pendulum_text'], x: 34, y: 694, w: 562, h: 110 },
   { id: 'atkdef', label: 'ATK / DEF', fieldIds: ['atk', 'def'], x: 386, y: 804, w: 210, h: 30 },
   { id: 'meta', label: '卡號 / 繪師', fieldIds: ['set_code', 'illustrator'], x: 29, y: 828, w: 212, h: 28 },
-  { id: 'frame', label: '卡框 / 稀有度', fieldIds: ['frame_type', 'rarity', 'foil'], x: 8, y: 8, w: 614, h: 864, tone: 'soft' },
+  { id: 'frame', label: '整張卡（卡框 / 稀有度 / 輸出形式）', fieldIds: ['frame_type', 'rarity', 'foil', 'output_target'], x: 8, y: 8, w: 614, h: 864, tone: 'soft' },
 ];
 
 const FRAMES = [
@@ -44,18 +44,18 @@ const STYLES = [
 const fields: FieldDef[] = [
   { id: 'frame_type', label: '卡片類型', group: 'subject', impact: 'high',
     hint: '卡框顏色與整張卡的氣質都由這格決定，影響最大。',
-    control: { kind: 'chips', options: FRAMES }, aiFillable: false, default: 'synchro' },
+    control: { kind: 'chips', options: FRAMES }, essential: true, aiFillable: false, default: 'synchro' },
   { id: 'name', label: '卡名', group: 'subject', impact: 'high',
     hint: '印在頂部，也是生圖的主體名稱。',
-    control: { kind: 'text' }, aiFillable: false, default: '蒼穹誓約龍騎士' },
+    control: { kind: 'text' }, essential: true, aiFillable: false, default: '蒼穹誓約龍騎士' },
   { id: 'anatomy', label: '生物構造 / 外型', group: 'subject', impact: 'high',
     hint: '遊戲王怪獸常常不是人形。這格講清楚，AI 才不會畫成普通角色。',
-    control: { kind: 'textarea', rows: 3 }, aiFillable: true,
+    control: { kind: 'textarea', rows: 3 }, essential: true, aiFillable: true,
     aiInstruction: 'an imaginative creature anatomy invented by the AI',
     default: '身披秘銀重甲的龍騎士，背後是四片由光構成的能量羽翼，右臂融合成巨大的龍顎' },
   { id: 'pose', label: '動作', group: 'subject', impact: 'high',
     hint: '決定氣勢。遊戲王插圖多半是「技能發動的瞬間」。',
-    control: { kind: 'textarea', rows: 2 }, aiFillable: true,
+    control: { kind: 'textarea', rows: 2 }, essential: true, aiFillable: true,
     aiInstruction: 'the climactic instant of an attack', default: '俯衝而下，長槍劃出一道撕裂天空的光痕' },
   { id: 'expression', label: '神情', group: 'subject', impact: 'mid',
     hint: '非人形怪獸也可以有神情（眼睛的光、姿態的氣場）。',
@@ -63,7 +63,7 @@ const fields: FieldDef[] = [
 
   { id: 'bg_setting', label: '地點', group: 'scene', impact: 'high',
     hint: '留空時遊戲王風格最容易變成一團黑霧。建議填。',
-    control: { kind: 'text' }, aiFillable: true, aiInstruction: 'a dramatic otherworldly location',
+    control: { kind: 'text' }, essential: true, aiFillable: true, aiInstruction: 'a dramatic otherworldly location',
     default: '崩塌中的天空神殿' },
   { id: 'bg_details', label: '背景細節', group: 'scene', impact: 'mid',
     hint: '破碎的石柱、漂浮的符文 —— 這些讓背景不空。',
@@ -94,7 +94,7 @@ const fields: FieldDef[] = [
 
   { id: 'art_style', label: '美術風格', group: 'style', impact: 'high',
     hint: '先決定這格，其他才有意義。',
-    control: { kind: 'chips', options: STYLES }, aiFillable: false, default: 'dark_fantasy' },
+    control: { kind: 'chips', options: STYLES }, essential: true, aiFillable: false, default: 'dark_fantasy' },
   { id: 'attribute', label: '屬性', group: 'style', impact: 'mid',
     hint: '右上角屬性球，同時影響光效主色。',
     control: { kind: 'chips', options: [
@@ -105,7 +105,7 @@ const fields: FieldDef[] = [
       { value: 'fire', label: '炎 FIRE', swatch: '#dc2626', keywords: 'FIRE attribute, roaring crimson flame' },
       { value: 'wind', label: '風 WIND', swatch: '#10b981', keywords: 'WIND attribute, emerald gale currents' },
       { value: 'divine', label: '神 DIVINE', swatch: '#f59e0b', keywords: 'DIVINE attribute, overwhelming sacred radiance' },
-    ] }, aiFillable: false, default: 'light' },
+    ] }, essential: true, aiFillable: false, default: 'light' },
   { id: 'palette', label: '色彩走向', group: 'style', impact: 'mid',
     hint: '想跟屬性反著走就改這格。',
     control: { kind: 'select', options: [
@@ -146,7 +146,7 @@ const fields: FieldDef[] = [
       { value: 'artwork', label: '只要插圖（正方形）', keywords: 'a standalone square 1:1 card illustration with no frame, no border and no text' },
       { value: 'full_card', label: '整張實體卡', keywords: 'a complete Yu-Gi-Oh style collectible card including frame, name plate, type line, effect text box and ATK/DEF line' },
       { value: 'mockup', label: '實體卡情境照', keywords: 'a product photograph of the physical card tilted under studio lighting, visible holographic refraction' },
-    ] }, aiFillable: false, default: 'artwork' },
+    ] }, essential: true, aiFillable: false, default: 'artwork' },
   { id: 'rarity', label: '稀有度', group: 'finish', impact: 'high',
     hint: '決定卡名字體與箔面層次。',
     control: { kind: 'chips', options: [
@@ -252,7 +252,7 @@ function build(values: Record<string, string>, modes: Record<string, FillMode>) 
   };
 }
 
-fields.push(classicFinishField('yugioh'));
+fields.unshift(...referenceFields());
 
 export const yugiohSystem: CardSystem = {
   id: 'yugioh',

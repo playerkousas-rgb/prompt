@@ -9,8 +9,9 @@
 //    要調整提示詞風格請去改 systems/*.ts 的新版輸出，不要動這裡。
 // ---------------------------------------------------------------------------
 
-import { JsonWriter, makeResolver } from './builder';
-import type { FieldDef, FillMode, JsonLine } from './types';
+import { BASE_NEGATIVE, JsonWriter, keywordsOf, makeResolver } from '../schema/builder';
+import { REF_PHOTO_SENTENCE, referenceLines } from './reference';
+import type { FieldDef, FillMode, JsonLine } from '../schema/types';
 
 // --- test1 原封不動的字典 ---------------------------------------------------
 
@@ -55,7 +56,7 @@ const RENDERING =
 const DIMENSIONS =
   'Standard 63x88mm card ratio, full-bleed illustration with proper TCG borders';
 
-const REF_PHOTO = 'Please refer to the first image I uploaded.';
+const REF_PHOTO = REF_PHOTO_SENTENCE;
 
 // ---------------------------------------------------------------------------
 // frame_structure：test1 的 ui_elements 給了「卡面要印什麼」，但沒說「印成什麼樣」。
@@ -70,7 +71,6 @@ const FRAME_STRUCTURE: Record<string, string[]> = {
   pokemon: [
     'Top bar: stage tag on the far left, card name centred in bold, HP value and the elemental type symbol on the right',
     'Artwork occupies the upper portion of the card and reads as the focal point',
-    'Thin category / height / weight strip sits directly under the artwork',
     'Ability box: a red rounded "Ability" pill, the ability name in red beside it, rules text in black underneath',
     'Each move is its own full-width row: energy cost on the far left, move name in large bold type in the middle, damage number right-aligned hard against the edge',
     'Energy costs must be DRAWN AS CIRCULAR TYPE SYMBOL ICONS, never spelled out as words',
@@ -112,40 +112,6 @@ export const YGOATTR_TO_EN: Record<string, string> = {
   fire: 'FIRE', wind: 'WIND', divine: 'DIVINE',
 };
 
-/** test1 原本的工藝選項，原字串保留 */
-export const CLASSIC_FINISH: Record<string, string[]> = {
-  pokemon: [
-    'Full Art Rainbow Holographic Foil',
-    'SAR Special Art Rare',
-    'HR Rainbow Rare',
-    'UR Gold Metal Rare',
-    'Shiny Treasure Rare',
-  ],
-  onepiece: [
-    'Alt Art Parallel Rare',
-    'Manga Rare',
-    'SEC Secret Rare',
-    'Treasure Rare',
-    'SP Anniversary Card',
-    'Flagship Event Rare',
-    'Full Art Dynamic Foil',
-    'Special Illustration Rare (Gold Etched)',
-    'Silver Prismatic Parallel',
-    'Manga Rare (Red Variant)',
-  ],
-  yugioh: [
-    'Starlight Rare',
-    'Ultimate Rare',
-    'Ghost Rare',
-    'QCSE 25th Anniversary Crushed Diamond',
-    'Prismatic Secret Rare',
-    '20th Anniversary Red Letter Rare',
-    'Collector Rare',
-    'God Rare',
-    'Hieroglyphic Prismatic Rare',
-  ],
-};
-
 // ---------------------------------------------------------------------------
 
 export function buildClassic(
@@ -157,6 +123,15 @@ export function buildClassic(
   const r = makeResolver(fields, values, modes);
   const j = new JsonWriter();
 
+  /** 取某一格的英文關鍵字；'auto' / 'none' 這種「不指定」的選項回空字串 */
+  const kw = (id: string) => {
+    const f = fields.find((x) => x.id === id);
+    if (!f) return '';
+    const v = values[id] ?? f.default;
+    if (!v || v === 'auto' || v === 'none') return '';
+    return keywordsOf(fields, id, v);
+  };
+
   const name = r('name').value || '貝登堡';
   const pose = r('pose').value;
   const expression = r('expression').value;
@@ -164,8 +139,26 @@ export function buildClassic(
   const bgAtmosphere = r('bg_atmosphere').value;
   const bgSetting = r('bg_setting').value;
 
+  // 附圖（人 / 寵物 / 物件）會改寫 subject、hair、clothing，並多一個 reference_image 區塊
+  const ref = referenceLines(values);
+  const outfit = r('outfit').value;
+
   j.open(null);
-  j.kv('subject', `2D anime style character "${name}" based on reference photo`, 'name', r('name').ai);
+  j.kv(
+    'subject',
+    `2D anime style character "${name}"${ref.subjectSuffix}`,
+    'name',
+    r('name').ai
+  );
+
+  if (ref.block) {
+    j.open('reference_image');
+    j.kv('usage', ref.block.usage, 'ref_use');
+    j.kv('must_keep', ref.block.must_keep, 'ref_keep');
+    j.kv('fidelity', ref.block.fidelity, 'ref_strength');
+    j.kvForce('do_not', ref.block.do_not, 'ref_use', false, false);
+    j.close();
+  }
 
   // ---- art_style ----
   j.open('art_style');
@@ -178,6 +171,16 @@ export function buildClassic(
       ? 'Official One Piece Card Game aesthetic, dynamic manga-style impact lines, high-saturation cinematic colors'
       : 'Yu-Gi-Oh! OCG official card art style, intricate fantasy detailing, sharp anime cel-shading'
   );
+  // 畫風 / 鏡頭 / 光線 這幾格以前只影響「結構化 JSON」分頁，
+  // 現在只有一份輸出，所以一律併進來 —— 每一格都看得到自己的去處。
+  j.kv('direction', kw('art_style'), 'art_style');
+  j.kv('camera', kw('camera'), 'camera');
+  j.kv('lighting', kw('time_light'), 'time_light');
+  j.kv('palette', kw('color_mood') || kw('palette'), values.color_mood ? 'color_mood' : 'palette');
+  j.kv('linework', kw('line_quality'), 'line_quality');
+  j.kv('detail_density', kw('detail_level'), 'detail_level');
+  j.kv('summon_fx', kw('summon_fx'), 'summon_fx');
+  j.kv('power_fx', kw('haki'), 'haki');
   j.close();
 
   if (systemId === 'pokemon') {
@@ -192,8 +195,8 @@ export function buildClassic(
     j.open('character_details');
     j.kv('pose', pose || 'dynamic battle pose full of power', 'pose', r('pose').ai);
     j.kv('expression', expression || 'confident and energetic expression', 'expression', r('expression').ai);
-    j.kv('hair', REF_PHOTO);
-    j.kv('clothing', REF_PHOTO);
+    j.kv('hair', ref.usePhotoForHair ? REF_PHOTO : '', 'ref_use');
+    j.kv('clothing', ref.usePhotoForLooks ? REF_PHOTO : outfit, ref.usePhotoForLooks ? 'ref_use' : 'outfit');
     j.open('main_character');
     j.kv('name', name, 'name', r('name').ai);
     j.kv('pose', pose || '全身肌肉緊繃，右手高舉精靈球準備投擲', 'pose', r('pose').ai);
@@ -267,16 +270,19 @@ export function buildClassic(
     j.close();
 
     // ---- visual_effects ----
-    const finish = values.classic_finish || CLASSIC_FINISH.pokemon[0];
+    // 工藝直接由「稀有度 / 箔面 / 卡框」三格決定，不再另外開一個重複的工藝下拉。
+    const finish = [kw('rarity'), kw('foil'), kw('border')].filter(Boolean).join(', ');
     j.open('visual_effects');
-    j.kv('finish', finish, 'classic_finish');
+    j.kv('finish', kw('rarity'), 'rarity');
+    j.kv('foil', kw('foil'), 'foil');
+    j.kv('border', kw('border'), 'border');
     j.kv('lighting', `Dramatic battle lighting with strong ${pType} color contrast`, 'energy_type');
     j.kvForce(
       'texture',
-      finish.includes('Rainbow')
+      /rainbow|holo|foil/i.test(finish)
         ? 'Full-bleed holographic with energy particles'
         : 'High-detail dynamic action texture',
-      'classic_finish',
+      'foil',
       false,
       false
     );
@@ -287,8 +293,8 @@ export function buildClassic(
     j.open('character_details');
     j.kv('pose', pose || 'dynamic battle pose full of power', 'pose', r('pose').ai);
     j.kv('expression', expression || 'confident and energetic expression', 'expression', r('expression').ai);
-    j.kv('hair', REF_PHOTO);
-    j.kv('clothing', REF_PHOTO);
+    j.kv('hair', ref.usePhotoForHair ? REF_PHOTO : '', 'ref_use');
+    j.kv('clothing', ref.usePhotoForLooks ? REF_PHOTO : outfit, ref.usePhotoForLooks ? 'ref_use' : 'outfit');
     j.close();
 
     j.open('background');
@@ -313,7 +319,8 @@ export function buildClassic(
     j.close();
 
     j.open('visual_effects');
-    j.kv('finish', values.classic_finish || CLASSIC_FINISH.onepiece[0], 'classic_finish');
+    j.kv('finish', kw('rarity'), 'rarity');
+    j.kv('foil', kw('foil'), 'foil');
     j.kv('lighting', `Dramatic lighting with strong ${opColor} accents`, 'color');
     j.kvForce('texture', '', undefined, false, false);
     j.close();
@@ -323,8 +330,8 @@ export function buildClassic(
     j.open('character_details');
     j.kv('pose', pose || 'dynamic battle pose full of power', 'pose', r('pose').ai);
     j.kv('expression', expression || 'confident and energetic expression', 'expression', r('expression').ai);
-    j.kv('hair', REF_PHOTO);
-    j.kv('clothing', REF_PHOTO);
+    j.kv('hair', ref.usePhotoForHair ? REF_PHOTO : '', 'ref_use');
+    j.kv('clothing', ref.usePhotoForLooks ? REF_PHOTO : outfit, ref.usePhotoForLooks ? 'ref_use' : 'outfit');
     j.close();
 
     j.open('background');
@@ -349,11 +356,25 @@ export function buildClassic(
     j.close();
 
     j.open('visual_effects');
-    j.kv('finish', values.classic_finish || CLASSIC_FINISH.yugioh[0], 'classic_finish');
+    j.kv('card_frame', kw('frame_type'), 'frame_type');
+    j.kv('finish', kw('rarity'), 'rarity');
+    j.kv('foil', kw('foil'), 'foil');
     j.kv('lighting', `Mystical lighting with strong ${ygAttr} attribute emphasis`, 'attribute');
     j.kvForce('texture', '', undefined, false, false);
     j.close();
   }
+
+  // ---- 輸出目標與負面提示 ----
+  // 只有一份輸出，所以連「要插圖還是整張卡」「不要出現什麼」都寫在同一份 JSON 裡，
+  // 使用者整段複製貼上就好，不用再去別的分頁找。
+  j.kv('output_target', kw('output_target'), 'output_target');
+  j.kvForce(
+    'negative_prompt',
+    BASE_NEGATIVE + ((values.output_target || 'artwork') === 'artwork' ? ', card frame, borders, any text' : ''),
+    'output_target',
+    false,
+    false
+  );
 
   j.close('}', false); // 收掉最外層
   const lines = j.finish();
@@ -366,19 +387,4 @@ export function buildClassic(
   }
 
   return { jsonLines: lines, plain: lines.map((l) => l.text).join('\n') };
-}
-
-/** 給「經典格式」用的工藝欄位 —— 選項為 test1 原字串 */
-export function classicFinishField(systemId: string): FieldDef {
-  const opts = CLASSIC_FINISH[systemId] ?? CLASSIC_FINISH.pokemon;
-  return {
-    id: 'classic_finish',
-    label: '經典格式工藝',
-    group: 'finish',
-    impact: 'mid',
-    hint: '只影響「經典 JSON (test1)」分頁的 visual_effects.finish，選項沿用 test1 原本的字串。',
-    control: { kind: 'select', options: opts.map((o) => ({ value: o, label: o })) },
-    aiFillable: false,
-    default: opts[0],
-  };
 }

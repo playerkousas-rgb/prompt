@@ -5,19 +5,26 @@ import { ImageUp, RotateCcw, Layers2 } from 'lucide-react';
 import type { CardSystem } from '@/lib/card/types';
 import { useHighlight } from './HighlightContext';
 
-const VB_W = 630;
-const VB_H = 880;
 
 export function CardAnatomy({
   system,
+  values,
   onPickField,
+  simple = false,
 }: {
   system: CardSystem;
+  /** 目前欄位值 —— 做章要靠它畫出使用者選的真實外框 */
+  values?: Record<string, string>;
   onPickField: (fieldId: string) => void;
+  /** 簡易模式：藏掉換底圖、底圖濃度這些進階玩法 */
+  simple?: boolean;
 }) {
   const { resolved, setActive, togglePin } = useHighlight();
+  const VB_W = system.viewBox?.w ?? 630;
+  const VB_H = system.viewBox?.h ?? 880;
   const [customImage, setCustomImage] = useState<string | null>(null);
   const [variant, setVariant] = useState(0);
+  const [exploded, setExploded] = useState(false);
   const [opacity, setOpacity] = useState(45);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -28,9 +35,12 @@ export function CardAnatomy({
   }, [system.id]);
 
   const variants = system.baseImages ?? [];
+  const maxW = (system.viewBox?.w ?? 630) >= (system.viewBox?.h ?? 880) ? 'max-w-[420px]' : 'max-w-[330px]';
   const current = variants[Math.min(variant, Math.max(variants.length - 1, 0))];
   const baseSrc = customImage ?? current?.src ?? null;
   const fieldLabel = (id: string) => system.fields.find((f) => f.id === id)?.label ?? id;
+
+  const outline = system.outline?.(values ?? {}) ?? null;
 
   const isZoneActive = (fieldIds: string[]) => !!resolved && fieldIds.includes(resolved);
   const activeZones = system.zones.filter((z) => isZoneActive(z.fieldIds));
@@ -39,14 +49,23 @@ export function CardAnatomy({
 
   return (
     <div className="flex h-full flex-col gap-3">
-      <div className="flex items-start justify-between gap-2">
+      <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
-          <h2 className="text-sm font-semibold text-slate-200">卡面對照圖</h2>
+          <h2 className="text-sm font-semibold text-slate-200">{system.anatomyLabel ?? '卡面對照圖'}</h2>
           <p className="text-[11px] text-slate-500">
             滑過左邊欄位 → 這裡對應的位置會亮起來。{system.ratio}
           </p>
         </div>
-        <div className="flex shrink-0 items-center gap-1">
+        {outline?.pieces && outline.pieces.length > 1 && (
+          <button
+            className={`btn-ghost shrink-0 !px-2.5 !py-1.5 text-xs ${exploded ? '!border-amber-400 !text-amber-200' : ''}`}
+            onClick={() => setExploded((v) => !v)}
+            title="看每一片各自長什麼樣（含自己的邊）"
+          >
+            {exploded ? '看拼起來' : '看拆開'}
+          </button>
+        )}
+        <div className={`flex shrink-0 items-center gap-1 ${simple ? 'hidden' : ''}`}>
           <button
             className="btn-ghost !px-2.5 !py-1.5 text-xs"
             title="換成你自己的參考卡圖（只存在你的瀏覽器，不會上傳）"
@@ -80,7 +99,7 @@ export function CardAnatomy({
         </div>
       </div>
 
-      {!customImage && variants.length > 1 && (
+      {!simple && !customImage && variants.length > 1 && (
         <div className="flex flex-wrap gap-1.5">
           {variants.map((v, i) => {
             const on = i === variant;
@@ -102,7 +121,7 @@ export function CardAnatomy({
         </div>
       )}
 
-      <div className="relative mx-auto w-full max-w-[330px]">
+      <div className={`relative mx-auto w-full ${maxW}`}>
         <svg
           viewBox={`0 0 ${VB_W} ${VB_H}`}
           className="w-full rounded-[22px] border border-slate-700 bg-slate-950 shadow-2xl"
@@ -117,7 +136,7 @@ export function CardAnatomy({
               <path d="M22 0 L0 0 0 22" fill="none" stroke="rgba(148,163,184,0.07)" strokeWidth="1" />
             </pattern>
             <clipPath id="cardclip">
-              <rect x="0" y="0" width={VB_W} height={VB_H} rx="26" />
+              {outline ? <path d={outline.d} /> : <rect x="0" y="0" width={VB_W} height={VB_H} rx="26" />}
             </clipPath>
           </defs>
 
@@ -137,8 +156,61 @@ export function CardAnatomy({
               />
             )}
 
-            <rect x="0" y="0" width={VB_W} height="6" fill={system.accent} opacity="0.85" />
+            {!outline && <rect x="0" y="0" width={VB_W} height="6" fill={system.accent} opacity="0.85" />}
           </g>
+
+          {/* 拆開預覽：每一片各自的形狀，往外推開 */}
+          {outline?.pieces && exploded && (
+            <g>
+              {outline.pieces.map((pc, i) => (
+                <g key={i} transform={`translate(${pc.dx} ${pc.dy})`}>
+                  <g clipPath={pc.clip ? 'url(#cardclip)' : undefined}>
+                    <path
+                      d={pc.d}
+                      fill="rgba(245,158,11,0.10)"
+                      stroke={system.accent}
+                      strokeWidth="3.5"
+                      strokeLinejoin="round"
+                    >
+                      <title>{pc.label}</title>
+                    </path>
+                  </g>
+                </g>
+              ))}
+            </g>
+          )}
+
+          {/* 真實外框：使用者選了什麼形狀，這裡就畫什麼形狀 */}
+          {outline && !exploded && (
+            <g
+              onMouseEnter={() => outline.fieldId && setActive(outline.fieldId)}
+              onClick={() => {
+                if (!outline.fieldId) return;
+                togglePin(outline.fieldId);
+                onPickField(outline.fieldId);
+              }}
+              className={outline.fieldId ? 'cursor-pointer' : undefined}
+            >
+              <path
+                d={outline.d}
+                fill="none"
+                stroke={outline.fieldId && resolved === outline.fieldId ? '#22d3ee' : system.accent}
+                strokeWidth={outline.fieldId && resolved === outline.fieldId ? 7 : 4}
+                strokeLinejoin="round"
+              />
+              {outline.splits?.map((d, i) => (
+                <path
+                  key={i}
+                  d={d}
+                  fill="none"
+                  stroke="rgba(226,232,240,0.75)"
+                  strokeWidth="2.5"
+                  strokeDasharray="10 8"
+                  clipPath="url(#cardclip)"
+                />
+              ))}
+            </g>
+          )}
 
           {system.zones.map((z) => {
             const soft = z.tone === 'soft';
@@ -187,7 +259,48 @@ export function CardAnatomy({
         </svg>
       </div>
 
-      {baseSrc && (
+      {outline?.note && (
+        <p className="rounded-lg border border-slate-800 bg-slate-950/60 px-2.5 py-1.5 text-center text-[11px] leading-snug text-slate-400">
+          {outline.note}
+        </p>
+      )}
+
+      {/* 「這一塊由哪些欄位控制」—— 滑到哪、這裡就列出哪一塊的全部欄位 */}
+      <div className="min-h-[58px] rounded-xl border border-slate-800 bg-slate-950/60 p-2.5">
+        {activeZones.length ? (
+          activeZones.slice(0, 2).map((z) => (
+            <div key={z.id} className="mb-1 last:mb-0">
+              <p className="text-[11px] font-semibold text-cyan-200">{z.label}</p>
+              <div className="mt-1 flex flex-wrap gap-1">
+                {z.fieldIds.map((id) => (
+                  <button
+                    key={id}
+                    onClick={() => {
+                      togglePin(id);
+                      onPickField(id);
+                    }}
+                    onMouseEnter={() => setActive(id)}
+                    className={`rounded-md border px-1.5 py-px text-[10.5px] transition ${
+                      resolved === id
+                        ? 'border-cyan-400 bg-cyan-400/15 text-cyan-100'
+                        : 'border-slate-700 text-slate-400 hover:border-slate-500 hover:text-slate-200'
+                    }`}
+                  >
+                    {fieldLabel(id)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))
+        ) : (
+          <p className="text-[11px] leading-snug text-slate-500">
+            滑過左邊的欄位，或滑過上面任何一塊框 —— 這裡會列出
+            <span className="text-slate-300">那一塊是由哪幾格決定的</span>。
+          </p>
+        )}
+      </div>
+
+      {baseSrc && !simple && (
         <div className="flex items-center gap-2 px-1">
           <Layers2 size={13} className="shrink-0 text-slate-500" />
           <span className="shrink-0 text-[11px] text-slate-500">底圖濃度</span>
