@@ -554,7 +554,20 @@ fields.push(classicFinishField('pokemon'));
 
 export const pokemonSystem: CardSystem = {
   id: 'pokemon',
-  baseImage: '/base/pokemon.avif',
+  baseImages: [
+    {
+      id: 'duo',
+      label: '雙人聯動',
+      desc: '貝登堡 ＋ 夥伴寶可夢，火山戰鬥場景、滿版彩虹箔',
+      src: '/base/pokemon-duo.avif',
+    },
+    {
+      id: 'solo',
+      label: '單人',
+      desc: '貝登堡獨照，非洲草原黃金時刻、SAR 窄框',
+      src: '/base/pokemon-solo.avif',
+    },
+  ],
   label: 'Pokémon',
   sublabel: '寶可夢 TCG',
   accent: '#f5c518',

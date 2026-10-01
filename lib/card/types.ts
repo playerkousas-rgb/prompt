@@ -42,6 +42,15 @@ export interface ZoneDef {
   tone?: 'soft' | 'normal';
 }
 
+/** 一張卡面對照底圖 */
+export interface BaseImageDef {
+  id: string;
+  label: string;
+  /** 這個版本在示範什麼 */
+  desc: string;
+  src: string;
+}
+
 export type ControlDef =
   | { kind: 'text'; placeholder?: string }
   | { kind: 'textarea'; rows?: number; placeholder?: string }
@@ -108,8 +117,8 @@ export interface CardSystem {
   accent: string;
   /** 卡面長寬比說明 */
   ratio: string;
-  /** 預設的卡面底圖（AVIF，用來對照版面位置，不是成品預覽） */
-  baseImage?: string;
+  /** 卡面底圖（AVIF，用來對照版面位置，不是成品預覽）。可以有多個版本供切換。 */
+  baseImages?: BaseImageDef[];
   zones: ZoneDef[];
   fields: FieldDef[];
   build: (values: Record<string, string>, modes: Record<string, FillMode>) => BuildResult;

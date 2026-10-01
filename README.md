@@ -17,9 +17,11 @@
 > 中間那張圖是**版面對照示意圖，不是成品預覽**。
 > 實測下來，用 HTML/CSS 模擬印刷卡面的結果比不上「把好的提示詞丟給生圖模型」，
 > 所以這裡不做 CSS 擬真渲染 —— 成品一律交給 AI。
-> 每套系統都內建一張 AI 生成的範例卡當底圖（AVIF，三張合計 330 KB），
-> 區塊座標對齊其版面；可用濃度滑桿調整，或「換底圖」上傳自己的參考卡圖
-> （只存在瀏覽器，不會上傳）。
+> 每套系統都內建 AI 生成的範例卡當底圖（AVIF，四張合計 432 KB），
+> 主角統一是**貝登堡（Baden-Powell，童軍運動創辦人）**，
+> 而且是**用 test1 的經典 JSON 格式生成的**，不是另外寫的描述。
+> 寶可夢有「雙人聯動 / 單人」兩版可切換，示範同一張卡在不同構圖與場景下的樣子。
+> 可用濃度滑桿調整，或「換底圖」上傳自己的參考卡圖（只存在瀏覽器，不會上傳）。
 
 ### 2. 影響力標示
 
@@ -36,6 +38,18 @@
 > 與新版輸出逐一比對 —— 三套系統的 JSON 結構、陣列長度與固定字串 100% 一致。
 >
 > 要調整提示詞風格請改 `systems/*.ts` 的新版輸出，**不要動 `classic.ts`**。
+
+**唯一一處刻意的行為調整（場景可變 + 有寵物／無寵物）**
+
+test1 在三套系統都把 `background.setting` 寫死（寶可夢固定是「高強度雙人聯動戰鬥場景」），
+不管使用者在 Setting 欄填什麼。現在改成：
+
+| 情況 | 輸出 |
+|---|---|
+| Setting 留空 | 完全沿用 test1 的寫死值，輸出與 test1 **逐字相同** |
+| Setting 有填 | 用你填的場景 |
+| 主角類型＝訓練家、且夥伴欄位留空 | 進入**單人模式**：拿掉 `partner_pokemon` 區塊，卡名改「單人版」，招式與特性的預設描述也改成單人說法 |
+| 其他情況 | 維持 test1 的雙人聯動寫法 |
 
 ### 4. 鎖定 or 交給 AI
 
@@ -104,7 +118,7 @@ components/studio/
   PromptPanel.tsx          右欄：分段高亮的提示詞輸出
   ResultPanel.tsx          出圖結果與下載
   SettingsModal.tsx        供應商與 API Key
-public/base/                 三張 AVIF 卡面底圖（pokemon / onepiece / yugioh）
+public/base/                 四張 AVIF 貝登堡底圖（pokemon-duo / pokemon-solo / onepiece / yugioh）
 lib/card/
   classic.ts               test1 原版 JSON 格式（忠實移植，勿改）
   types.ts                 欄位 / 區塊 / 片段的型別定義
@@ -113,6 +127,12 @@ lib/card/
 lib/providers.ts           供應商與模型清單
 legacy/                    原本的三個單檔 HTML 工具（保留參考）
 ```
+
+### 要新增一張底圖 / 一種場景？
+
+在該系統的 `baseImages` 陣列加一筆 `{ id, label, desc, src }` 就會自動多一顆切換鈕，
+UI 不用改。底圖請一律轉 AVIF（`convert in.png -resize 756x1064 -quality 52 out.avif`），
+一張約 90–130 KB。
 
 ### 要新增一個卡牌系統？
 

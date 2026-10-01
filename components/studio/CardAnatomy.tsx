@@ -17,13 +17,19 @@ export function CardAnatomy({
 }) {
   const { resolved, setActive, togglePin } = useHighlight();
   const [customImage, setCustomImage] = useState<string | null>(null);
+  const [variant, setVariant] = useState(0);
   const [opacity, setOpacity] = useState(45);
   const fileRef = useRef<HTMLInputElement>(null);
 
   // 換系統時把自訂底圖清掉，回到該系統的預設底圖
-  useEffect(() => setCustomImage(null), [system.id]);
+  useEffect(() => {
+    setCustomImage(null);
+    setVariant(0);
+  }, [system.id]);
 
-  const baseSrc = customImage ?? system.baseImage ?? null;
+  const variants = system.baseImages ?? [];
+  const current = variants[Math.min(variant, Math.max(variants.length - 1, 0))];
+  const baseSrc = customImage ?? current?.src ?? null;
   const fieldLabel = (id: string) => system.fields.find((f) => f.id === id)?.label ?? id;
 
   const isZoneActive = (fieldIds: string[]) => !!resolved && fieldIds.includes(resolved);
@@ -73,6 +79,28 @@ export function CardAnatomy({
           />
         </div>
       </div>
+
+      {!customImage && variants.length > 1 && (
+        <div className="flex flex-wrap gap-1.5">
+          {variants.map((v, i) => {
+            const on = i === variant;
+            return (
+              <button
+                key={v.id}
+                onClick={() => setVariant(i)}
+                title={v.desc}
+                className={`rounded-lg border px-2.5 py-1 text-[11px] font-medium transition ${
+                  on
+                    ? 'border-cyan-400 bg-cyan-400/15 text-cyan-100'
+                    : 'border-slate-700 text-slate-400 hover:border-slate-500 hover:text-slate-200'
+                }`}
+              >
+                {v.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       <div className="relative mx-auto w-full max-w-[330px]">
         <svg
@@ -176,9 +204,19 @@ export function CardAnatomy({
       )}
 
       <p className="text-center text-[11px] leading-relaxed text-slate-500">
-        底圖是 AI 生成的範例卡，純粹用來<span className="text-slate-300">對照版面位置</span>，不是成品預覽。
+        {customImage ? (
+          <>你自己的參考卡圖（只在這台電腦，沒有上傳）。</>
+        ) : current ? (
+          <>
+            底圖：<span className="text-slate-300">{current.desc}</span>
+            <br />
+            由 test1 的經典 JSON 格式生成，純粹用來對照版面位置，不是成品預覽。
+          </>
+        ) : (
+          <>版面對照示意圖，不是成品預覽。</>
+        )}
         <br />
-        點一下區塊可以把對應欄位<span className="text-cyan-300">釘選</span>住；也可以換成你自己的參考卡圖。
+        點一下區塊可以把對應欄位<span className="text-cyan-300">釘選</span>住。
       </p>
     </div>
   );

@@ -11,11 +11,11 @@ const zones: ZoneDef[] = [
     id: 'art', label: '插圖窗（正方形！構圖要以方形思考）',
     fieldIds: ['name', 'pose', 'expression', 'anatomy', 'bg_setting', 'bg_details', 'bg_atmosphere',
       'art_style', 'attribute', 'summon_fx', 'camera', 'palette'],
-    x: 77, y: 156, w: 480, h: 460, tone: 'soft',
+    x: 77, y: 152, w: 480, h: 468, tone: 'soft',
   },
-  { id: 'typeline', label: '種族 / 類型', fieldIds: ['monster_type', 'frame_type'], x: 35, y: 650, w: 560, h: 36 },
-  { id: 'effect', label: '效果文字框', fieldIds: ['effect_text', 'pendulum_text'], x: 35, y: 688, w: 560, h: 104 },
-  { id: 'atkdef', label: 'ATK / DEF', fieldIds: ['atk', 'def'], x: 386, y: 794, w: 210, h: 32 },
+  { id: 'typeline', label: '種族 / 類型', fieldIds: ['monster_type', 'frame_type'], x: 34, y: 658, w: 562, h: 34 },
+  { id: 'effect', label: '效果文字框', fieldIds: ['effect_text', 'pendulum_text'], x: 34, y: 694, w: 562, h: 110 },
+  { id: 'atkdef', label: 'ATK / DEF', fieldIds: ['atk', 'def'], x: 386, y: 804, w: 210, h: 30 },
   { id: 'meta', label: '卡號 / 繪師', fieldIds: ['set_code', 'illustrator'], x: 29, y: 828, w: 212, h: 28 },
   { id: 'frame', label: '卡框 / 稀有度', fieldIds: ['frame_type', 'rarity', 'foil'], x: 8, y: 8, w: 614, h: 864, tone: 'soft' },
 ];
@@ -256,7 +256,14 @@ fields.push(classicFinishField('yugioh'));
 
 export const yugiohSystem: CardSystem = {
   id: 'yugioh',
-  baseImage: '/base/yugioh.avif',
+  baseImages: [
+    {
+      id: 'synchro',
+      label: '貝登堡 · 光',
+      desc: '童軍聖鎧同步怪獸，崩塌天空神殿、Starlight Rare',
+      src: '/base/yugioh.avif',
+    },
+  ],
   label: 'Yu-Gi-Oh!',
   sublabel: '遊戲王 OCG',
   accent: '#a855f7',

@@ -124,6 +124,7 @@ export function buildClassic(
   const expression = r('expression').value;
   const bgDetails = r('bg_details').value;
   const bgAtmosphere = r('bg_atmosphere').value;
+  const bgSetting = r('bg_setting').value;
 
   j.open(null);
   j.kv('subject', `2D anime style character "${name}" based on reference photo`, 'name', r('name').ai);
@@ -142,6 +143,9 @@ export function buildClassic(
   j.close();
 
   if (systemId === 'pokemon') {
+    // 「有寵物 / 無寵物」兩種版本：由主角類型 + 夥伴欄位決定。
+    // 有寵物時完全照 test1 原本的雙人聯動寫法；無寵物時改成單人構圖。
+    const soloMode = values.subject_type === 'trainer' || !r('partner').value.trim();
     const partner = r('partner').value || '噴火龍';
     const pType = ENERGY_TO_ZH[values.energy_type] || '火';
     const dynamicBG = TYPE_BG[pType] || '高能量戰鬥場景，背景充滿爆炸光斑與屬性粒子';
@@ -157,37 +161,56 @@ export function buildClassic(
     j.kv('pose', pose || '全身肌肉緊繃，右手高舉精靈球準備投擲', 'pose', r('pose').ai);
     j.kv('expression', expression || '自信熱血的表情', 'expression', r('expression').ai);
     j.close();
-    j.open('partner_pokemon');
-    j.kv('name', partner, 'partner', r('partner').ai);
-    j.kv('pose', '與主角動作呼應，釋放強大終極技能');
-    j.kv('type', pType, 'energy_type');
-    j.close();
+    if (!soloMode) {
+      j.open('partner_pokemon');
+      j.kv('name', partner, 'partner', r('partner').ai);
+      j.kv('pose', '與主角動作呼應，釋放強大終極技能');
+      j.kv('type', pType, 'energy_type');
+      j.close();
+    }
     j.close();
 
     // ---- background ----
     j.open('background');
-    j.kv('setting', '高強度雙人聯動戰鬥場景');
+    // test1 原本把 setting 寫死；這裡改成「你有填就用你的」，沒填才回到原本的預設
+    j.kvForce(
+      'setting',
+      bgSetting || (soloMode ? '單人主角英姿場景' : '高強度雙人聯動戰鬥場景'),
+      'bg_setting',
+      r('bg_setting').ai
+    );
     j.kvForce('details', bgDetails || dynamicBG, 'bg_details', r('bg_details').ai);
     j.kvForce('atmosphere', bgAtmosphere || `強烈爆炸與${pType}屬性粒子四射，極具張力`, 'bg_atmosphere', r('bg_atmosphere').ai);
     j.close();
 
     // ---- card_layout ----
     const m1n = r('attack1_name').value || `${pType}屬性連擊`;
-    const m1t = r('attack1_text').value || `與${partner}聯手釋放${pType}能量，造成大量傷害`;
+    const m1t =
+      r('attack1_text').value ||
+      (soloMode ? `釋放${pType}能量發動突擊，造成大量傷害` : `與${partner}聯手釋放${pType}能量，造成大量傷害`);
     const m2n = r('attack2_name').value || `終極${pType}爆發`;
-    const m2t = r('attack2_text').value || `召喚${partner}全力攻擊，引發毀滅性${pType}爆炸`;
+    const m2t =
+      r('attack2_text').value ||
+      (soloMode ? `傾盡全力引發毀滅性${pType}爆炸` : `召喚${partner}全力攻擊，引發毀滅性${pType}爆炸`);
     const abilityName = r('ability_name').value;
     const abilityText = r('ability_text').value;
     const ability =
       abilityName || abilityText
         ? [abilityName, abilityText].filter(Boolean).join('：')
+        : soloMode
+        ? '童軍精神：我方全體寶可夢的撤退費用減少 1'
         : `聯手加成：${partner}在場時攻擊力提升`;
 
     j.open('card_layout');
     j.kv('dimensions', DIMENSIONS);
     j.arr('ui_elements', [
       { text: `Top: HP • ${pType}屬性符號`, fieldId: 'energy_type' },
-      { text: `Card Name: 「${name} & ${partner}」 雙人聯動攻擊版`, fieldId: 'name' },
+      {
+        text: soloMode
+          ? `Card Name: 「${name}」 單人版`
+          : `Card Name: 「${name} & ${partner}」 雙人聯動攻擊版`,
+        fieldId: 'name',
+      },
       {
         text: `Move 1: "${m1n}" Energy: ${values.attack1_cost || '2' + pType[0]} Damage: ${r('attack1_dmg').value || '120'}`,
         fieldId: 'attack1_name', ai: r('attack1_name').ai,
@@ -230,7 +253,7 @@ export function buildClassic(
     j.close();
 
     j.open('background');
-    j.kv('setting', '激烈戰鬥場景');
+    j.kvForce('setting', bgSetting || '激烈戰鬥場景', 'bg_setting', r('bg_setting').ai);
     j.kvForce('details', bgDetails || COLOR_BG[opColor] || '高張力海戰場面', 'bg_details', r('bg_details').ai);
     j.kvForce('atmosphere', bgAtmosphere || `${opColor}色調強烈能量爆發，充滿熱血與破壞力`, 'bg_atmosphere', r('bg_atmosphere').ai);
     j.close();
@@ -265,7 +288,7 @@ export function buildClassic(
     j.close();
 
     j.open('background');
-    j.kv('setting', '史詩級召喚戰鬥場面');
+    j.kvForce('setting', bgSetting || '史詩級召喚戰鬥場面', 'bg_setting', r('bg_setting').ai);
     j.kvForce('details', bgDetails || ATTR_BG[ygAttr] || '神秘強大戰鬥場景', 'bg_details', r('bg_details').ai);
     j.kvForce('atmosphere', bgAtmosphere || `${ygAttr}屬性強烈能量爆發`, 'bg_atmosphere', r('bg_atmosphere').ai);
     j.close();
