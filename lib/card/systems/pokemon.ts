@@ -6,10 +6,10 @@ import type { CardSystem, FieldDef, FillMode, ZoneDef } from '../types';
 // 卡面示意圖：630 x 880 viewBox，比例同實體卡 63 x 88 mm
 // ---------------------------------------------------------------------------
 const zones: ZoneDef[] = [
-  { id: 'stage', label: '階段', fieldIds: ['stage'], x: 16, y: 26, w: 70, h: 28 },
-  { id: 'name', label: '卡名', fieldIds: ['name', 'subject_type'], x: 91, y: 27, w: 365, h: 46 },
-  { id: 'hp', label: 'HP', fieldIds: ['hp'], x: 462, y: 24, w: 96, h: 48 },
-  { id: 'type', label: '屬性', fieldIds: ['energy_type'], x: 562, y: 26, w: 52, h: 50 },
+  { id: 'stage', label: '階段', fieldIds: ['stage'], x: 27, y: 34, w: 83, h: 30 },
+  { id: 'name', label: '卡名', fieldIds: ['name', 'subject_type'], x: 128, y: 32, w: 260, h: 42 },
+  { id: 'hp', label: 'HP', fieldIds: ['hp'], x: 443, y: 34, w: 115, h: 40 },
+  { id: 'type', label: '屬性', fieldIds: ['energy_type'], x: 566, y: 32, w: 46, h: 44 },
   {
     id: 'art',
     label: '插圖窗（AI 生圖的主戰場）',
@@ -18,27 +18,27 @@ const zones: ZoneDef[] = [
       'bg_setting', 'bg_details', 'bg_atmosphere', 'time_light', 'camera',
       'art_style', 'color_mood', 'line_quality', 'energy_type', 'detail_level',
     ],
-    x: 22, y: 82, w: 588, h: 410, tone: 'soft',
+    x: 42, y: 88, w: 553, h: 353, tone: 'soft',
   },
-  { id: 'category', label: '分類 / 身高體重', fieldIds: ['category'], x: 40, y: 496, w: 554, h: 22 },
-  { id: 'ability', label: '特性', fieldIds: ['ability_name', 'ability_text'], x: 40, y: 522, w: 554, h: 72 },
+  { id: 'category', label: '分類 / 身高體重', fieldIds: ['category'], x: 39, y: 446, w: 558, h: 25 },
+  { id: 'ability', label: '特性', fieldIds: ['ability_name', 'ability_text'], x: 48, y: 492, w: 541, h: 66 },
   {
     id: 'attack1', label: '招式 1',
     fieldIds: ['attack1_cost', 'attack1_name', 'attack1_dmg', 'attack1_text'],
-    x: 36, y: 600, w: 572, h: 52,
+    x: 45, y: 578, w: 544, h: 48,
   },
   {
     id: 'attack2', label: '招式 2',
     fieldIds: ['attack2_cost', 'attack2_name', 'attack2_dmg', 'attack2_text'],
-    x: 36, y: 658, w: 572, h: 78,
+    x: 45, y: 664, w: 544, h: 52,
   },
   {
     id: 'weak', label: '弱點 / 抵抗 / 撤退',
     fieldIds: ['weakness', 'resistance', 'retreat'],
-    x: 28, y: 762, w: 582, h: 30,
+    x: 39, y: 754, w: 558, h: 32,
   },
-  { id: 'flavor', label: '風味文字', fieldIds: ['flavor'], x: 342, y: 806, w: 270, h: 34 },
-  { id: 'setnum', label: '編號 / 繪師', fieldIds: ['set_number', 'illustrator'], x: 28, y: 806, w: 192, h: 46 },
+  { id: 'flavor', label: '風味文字', fieldIds: ['flavor'], x: 393, y: 798, w: 204, h: 36 },
+  { id: 'setnum', label: '編號 / 繪師', fieldIds: ['set_number', 'illustrator'], x: 42, y: 800, w: 110, h: 32 },
   { id: 'frame', label: '卡框 / 箔面', fieldIds: ['rarity', 'foil', 'border'], x: 8, y: 8, w: 614, h: 864, tone: 'soft' },
 ];
 
