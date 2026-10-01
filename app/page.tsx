@@ -30,20 +30,22 @@ export default function Home() {
           </span>
         </Link>
 
-        <div className="panel relative overflow-hidden p-6 opacity-60">
+        <Link
+          href="/badge"
+          className="group panel relative overflow-hidden p-6 transition hover:border-amber-400/60"
+        >
           <div className="mb-3 inline-flex rounded-xl bg-amber-400/10 p-2.5 text-amber-400">
             <Gem size={22} />
           </div>
-          <h2 className="mb-1 text-xl font-bold text-slate-100">
-            做章 <span className="ml-1 rounded-md border border-slate-700 px-1.5 py-0.5 text-[10px] font-medium text-slate-400">下一步</span>
-          </h2>
+          <h2 className="mb-1 text-xl font-bold text-slate-100">做章</h2>
           <p className="mb-4 text-xs leading-relaxed text-slate-400">
-            徽章、紀念章與實體工藝品。機繡 / 織章 / 硬琺瑯 / 滴膠 / 烤漆各自的材質規則與色盤策略。
+            童軍紀念章與巾圈。先問平面設計（構圖、符號、文字弧、配色），工藝放最後；
+            紀念章還會多給一份<strong className="text-slate-300">可以直接寄給工廠的中文規格單</strong>。
           </p>
-          <p className="text-[11px] text-slate-500">
-            舊版單檔工具仍在 <code className="text-slate-400">legacy/badge-craft-designer.html</code>。
-          </p>
-        </div>
+          <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-400">
+            開始 <ArrowRight size={13} className="transition group-hover:translate-x-1" />
+          </span>
+        </Link>
       </div>
 
       <section className="mb-12">

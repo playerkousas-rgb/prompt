@@ -1,6 +1,6 @@
-import { BASE_NEGATIVE, JsonWriter, PromptWriter, keywordsOf, makeResolver } from '../builder';
+import { BASE_NEGATIVE, JsonWriter, PromptWriter, keywordsOf, makeResolver } from '../../schema/builder';
 import { referenceFields } from '../reference';
-import type { CardSystem, FieldDef, FillMode, ZoneDef } from '../types';
+import type { CardSystem, FieldDef, FillMode, ZoneDef } from '../../schema/types';
 
 const zones: ZoneDef[] = [
   { id: 'cost', label: '費用', fieldIds: ['cost'], x: 15, y: 15, w: 84, h: 80 },

@@ -1,6 +1,6 @@
-import { BASE_NEGATIVE, JsonWriter, PromptWriter, keywordsOf, makeResolver } from '../builder';
+import { BASE_NEGATIVE, JsonWriter, PromptWriter, keywordsOf, makeResolver } from '../../schema/builder';
 import { referenceFields } from '../reference';
-import type { CardSystem, FieldDef, FillMode, ZoneDef } from '../types';
+import type { CardSystem, FieldDef, FillMode, ZoneDef } from '../../schema/types';
 
 // ---------------------------------------------------------------------------
 // 卡面示意圖：630 x 880 viewBox，比例同實體卡 63 x 88 mm

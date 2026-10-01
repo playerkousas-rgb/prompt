@@ -6,7 +6,7 @@
 // 也不會寫進任何檔案。這裡只負責產生「請模型看第一張圖」的文字指示。
 // ---------------------------------------------------------------------------
 
-import type { FieldDef } from './types';
+import type { FieldDef } from '../schema/types';
 
 export const REF_PHOTO_SENTENCE = 'Please refer to the first image I uploaded.';
 

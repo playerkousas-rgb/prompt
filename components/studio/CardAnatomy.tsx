@@ -5,8 +5,6 @@ import { ImageUp, RotateCcw, Layers2 } from 'lucide-react';
 import type { CardSystem } from '@/lib/card/types';
 import { useHighlight } from './HighlightContext';
 
-const VB_W = 630;
-const VB_H = 880;
 
 export function CardAnatomy({
   system,
@@ -19,6 +17,8 @@ export function CardAnatomy({
   simple?: boolean;
 }) {
   const { resolved, setActive, togglePin } = useHighlight();
+  const VB_W = system.viewBox?.w ?? 630;
+  const VB_H = system.viewBox?.h ?? 880;
   const [customImage, setCustomImage] = useState<string | null>(null);
   const [variant, setVariant] = useState(0);
   const [opacity, setOpacity] = useState(45);
@@ -31,6 +31,7 @@ export function CardAnatomy({
   }, [system.id]);
 
   const variants = system.baseImages ?? [];
+  const maxW = (system.viewBox?.w ?? 630) >= (system.viewBox?.h ?? 880) ? 'max-w-[420px]' : 'max-w-[330px]';
   const current = variants[Math.min(variant, Math.max(variants.length - 1, 0))];
   const baseSrc = customImage ?? current?.src ?? null;
   const fieldLabel = (id: string) => system.fields.find((f) => f.id === id)?.label ?? id;
@@ -44,7 +45,7 @@ export function CardAnatomy({
     <div className="flex h-full flex-col gap-3">
       <div className="flex items-start justify-between gap-2">
         <div>
-          <h2 className="text-sm font-semibold text-slate-200">卡面對照圖</h2>
+          <h2 className="text-sm font-semibold text-slate-200">{system.anatomyLabel ?? '卡面對照圖'}</h2>
           <p className="text-[11px] text-slate-500">
             滑過左邊欄位 → 這裡對應的位置會亮起來。{system.ratio}
           </p>
@@ -105,7 +106,7 @@ export function CardAnatomy({
         </div>
       )}
 
-      <div className="relative mx-auto w-full max-w-[330px]">
+      <div className={`relative mx-auto w-full ${maxW}`}>
         <svg
           viewBox={`0 0 ${VB_W} ${VB_H}`}
           className="w-full rounded-[22px] border border-slate-700 bg-slate-950 shadow-2xl"

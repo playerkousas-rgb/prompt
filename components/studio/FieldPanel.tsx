@@ -4,6 +4,7 @@ import React, { useMemo, useState } from 'react';
 import { Lock, Sparkles, Pin, Crosshair, Braces } from 'lucide-react';
 import type { CardSystem, FieldDef, FillMode, GroupId } from '@/lib/card/types';
 import { GROUPS, IMPACT_META, zoneSummary } from '@/lib/card/types';
+
 import { useHighlight } from './HighlightContext';
 
 interface Props {
@@ -35,7 +36,13 @@ export function FieldPanel({
   simple,
   slot,
 }: Props) {
-  const [group, setGroup] = useState<GroupId>('subject');
+  const [group, setGroup] = useState<GroupId>(() => (system.groups ?? GROUPS)[0].id);
+
+  // 換產品線（做卡 ↔ 做章）時，分組要跟著重設
+  React.useEffect(() => {
+    const gs = system.groups ?? GROUPS;
+    if (!gs.some((g) => g.id === group)) setGroup(gs[0].id);
+  }, [system]); // eslint-disable-line react-hooks/exhaustive-deps
   const { resolved, setActive, togglePin, pinned } = useHighlight();
 
   // 從卡面點進來的欄位 → 自動切到它所在的分頁
@@ -59,16 +66,17 @@ export function FieldPanel({
     return m;
   }, [visible]);
 
-  const groups = GROUPS.filter((g) => byGroup.has(g.id));
-  const meta = GROUPS.find((g) => g.id === group);
+  const allGroups = system.groups ?? GROUPS;
+  const groups = allGroups.filter((g) => byGroup.has(g.id));
+  const meta = allGroups.find((g) => g.id === group);
 
   // 簡易模式：不分頁，只列必填的那幾格，照 主角 → 場景 → 畫風 → 卡面 的順序
   const simpleList = useMemo(() => {
-    const order = GROUPS.map((g) => g.id);
+    const order = allGroups.map((g) => g.id);
     return visible
       .filter((f) => f.essential)
       .sort((a, b) => order.indexOf(a.group) - order.indexOf(b.group));
-  }, [visible]);
+  }, [visible, allGroups]);
 
   const current = simple ? simpleList : (byGroup.get(group) ?? []).slice().sort((a, b) => rank(a.impact) - rank(b.impact));
 

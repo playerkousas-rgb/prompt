@@ -1,6 +1,6 @@
-import { BASE_NEGATIVE, JsonWriter, PromptWriter, keywordsOf, makeResolver } from '../builder';
+import { BASE_NEGATIVE, JsonWriter, PromptWriter, keywordsOf, makeResolver } from '../../schema/builder';
 import { referenceFields } from '../reference';
-import type { CardSystem, FieldDef, FillMode, ZoneDef } from '../types';
+import type { CardSystem, FieldDef, FillMode, ZoneDef } from '../../schema/types';
 
 // 遊戲王卡比例為 59 × 86 mm，插圖窗是正方形 —— 這點跟寶可夢/OP 很不一樣
 const zones: ZoneDef[] = [

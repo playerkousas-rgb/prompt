@@ -9,9 +9,9 @@
 //    要調整提示詞風格請去改 systems/*.ts 的新版輸出，不要動這裡。
 // ---------------------------------------------------------------------------
 
-import { BASE_NEGATIVE, JsonWriter, keywordsOf, makeResolver } from './builder';
+import { BASE_NEGATIVE, JsonWriter, keywordsOf, makeResolver } from '../schema/builder';
 import { REF_PHOTO_SENTENCE, referenceLines } from './reference';
-import type { FieldDef, FillMode, JsonLine } from './types';
+import type { FieldDef, FillMode, JsonLine } from '../schema/types';
 
 // --- test1 原封不動的字典 ---------------------------------------------------
 
