@@ -24,6 +24,7 @@ export function CardAnatomy({
   const VB_H = system.viewBox?.h ?? 880;
   const [customImage, setCustomImage] = useState<string | null>(null);
   const [variant, setVariant] = useState(0);
+  const [exploded, setExploded] = useState(false);
   const [opacity, setOpacity] = useState(45);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -48,13 +49,22 @@ export function CardAnatomy({
 
   return (
     <div className="flex h-full flex-col gap-3">
-      <div className="flex items-start justify-between gap-2">
+      <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
           <h2 className="text-sm font-semibold text-slate-200">{system.anatomyLabel ?? '卡面對照圖'}</h2>
           <p className="text-[11px] text-slate-500">
             滑過左邊欄位 → 這裡對應的位置會亮起來。{system.ratio}
           </p>
         </div>
+        {outline?.pieces && outline.pieces.length > 1 && (
+          <button
+            className={`btn-ghost shrink-0 !px-2.5 !py-1.5 text-xs ${exploded ? '!border-amber-400 !text-amber-200' : ''}`}
+            onClick={() => setExploded((v) => !v)}
+            title="看每一片各自長什麼樣（含自己的邊）"
+          >
+            {exploded ? '看拼起來' : '看拆開'}
+          </button>
+        )}
         <div className={`flex shrink-0 items-center gap-1 ${simple ? 'hidden' : ''}`}>
           <button
             className="btn-ghost !px-2.5 !py-1.5 text-xs"
@@ -149,8 +159,29 @@ export function CardAnatomy({
             {!outline && <rect x="0" y="0" width={VB_W} height="6" fill={system.accent} opacity="0.85" />}
           </g>
 
+          {/* 拆開預覽：每一片各自的形狀，往外推開 */}
+          {outline?.pieces && exploded && (
+            <g>
+              {outline.pieces.map((pc, i) => (
+                <g key={i} transform={`translate(${pc.dx} ${pc.dy})`}>
+                  <g clipPath={pc.clip ? 'url(#cardclip)' : undefined}>
+                    <path
+                      d={pc.d}
+                      fill="rgba(245,158,11,0.10)"
+                      stroke={system.accent}
+                      strokeWidth="3.5"
+                      strokeLinejoin="round"
+                    >
+                      <title>{pc.label}</title>
+                    </path>
+                  </g>
+                </g>
+              ))}
+            </g>
+          )}
+
           {/* 真實外框：使用者選了什麼形狀，這裡就畫什麼形狀 */}
-          {outline && (
+          {outline && !exploded && (
             <g
               onMouseEnter={() => outline.fieldId && setActive(outline.fieldId)}
               onClick={() => {

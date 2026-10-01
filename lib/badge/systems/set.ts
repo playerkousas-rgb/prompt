@@ -94,6 +94,36 @@ const fields: FieldDef[] = [
     aiFillable: false, default: '奶油白', essential: true,
   },
 
+  {
+    id: 'tab_shape', label: '榫頭形狀', group: 'split', impact: 'mid',
+    hint: '只有咬合拼圖要管。圓榫最好脫模、燕尾榫咬得最牢、方榫最容易做歪。',
+    control: { kind: 'select', options: [
+      { value: 'round', label: '圓榫（最好做）', keywords: 'rounded knob-and-socket interlock, the classic jigsaw tab' },
+      { value: 'dovetail', label: '燕尾榫（咬最牢）', keywords: 'dovetail interlock that widens towards its tip so the pieces cannot pull apart sideways' },
+      { value: 'square', label: '方榫（最俐落）', keywords: 'square tongue-and-groove interlock with sharp corners' },
+    ] },
+    showIf: (v) => (v.split || '') === 'jigsaw',
+    aiFillable: false, default: 'round',
+  },
+  {
+    id: 'tab_mm', label: '榫頭寬度（mm）', group: 'split', impact: 'mid',
+    hint: '低於 8 mm 的榫頭在布章上會散、在軟膠上會斷。',
+    control: { kind: 'select', options: ['8', '10', '12', '15'].map((x) => ({ value: x, label: `${x} mm` })) },
+    showIf: (v) => (v.split || '') === 'jigsaw',
+    aiFillable: false, default: '10',
+  },
+  {
+    id: 'fit', label: '配合鬆緊（公差）', group: 'split', impact: 'mid',
+    hint: '布章會縮、軟膠會脹。緊配拼起來最漂亮，但做壞了就塞不進去。',
+    control: { kind: 'select', options: [
+      { value: 'tight', label: '緊配（±0.3 mm，拿得起來）', keywords: 'tight interference fit, the assembled set can be lifted as one piece' },
+      { value: 'normal', label: '標準（±0.8 mm，平放剛好）', keywords: 'normal clearance fit, the pieces sit together when laid flat' },
+      { value: 'loose', label: '鬆配（±1.5 mm，好拆好收）', keywords: 'loose fit with a visible gap, easy to separate' },
+    ] },
+    showIf: (v) => (v.split || '') === 'jigsaw',
+    aiFillable: false, default: 'normal',
+  },
+
   // --- 每片 ---------------------------------------------------------------
   {
     id: 'piece_subjects', label: '每片的主角（一行一片）', group: 'pieces', impact: 'high',
@@ -179,6 +209,8 @@ function cropOf(splitId: string, i: number, total: number): string {
       return i === 0
         ? 'the central medallion of the set — the hero piece'
         : `satellite piece ${i} of ${total - 1}, a self-contained small badge that echoes the centre piece`;
+    case 'series':
+      return `variant ${i + 1} of ${total} in the series — the frame and layout are identical to the others, only the hero subject changes`;
     case 'jigsaw':
       return `interlocking piece ${i + 1} of ${total}, counted left to right${
         i < total - 1 ? ', with a rounded tab protruding from its right edge' : ''
@@ -227,10 +259,22 @@ function setNotes(values: Record<string, string>) {
     }mm seam in the border colour. Treat that seam as grout: keep faces, lettering and key shapes clear of the cut lines.`,
   });
 
+  if (split.value === 'jigsaw') {
+    const tab = Number(values.tab_mm || '10');
+    const fitTol = values.fit === 'tight' ? 0.3 : values.fit === 'loose' ? 1.5 : 0.8;
+    out.push({
+      fieldId: 'tab_mm',
+      zh: `榫頭 ${tab} mm、配合公差 ±${fitTol} mm。請工廠確認：刀模（或雷切路徑）是否照同一個檔案出，公母件是否分開開模，以及${
+        craft.isEmbroidery ? '布料回縮' : '軟膠收縮'
+      }會不會吃掉公差。`,
+      en: `The interlocking tabs are about ${tab}mm wide — draw them chunky and rounded, never as thin puzzle knobs.`,
+    });
+  }
+
   if (split.value === 'jigsaw' && craft.isEmbroidery) {
     out.push({
       fieldId: 'craft',
-      zh: '咬合榫頭用電繡會散開、用織章勉強可以，最穩是 PVC 軟膠。榫頭至少 8 mm 寬。',
+      zh: `目前選了${craft.label}：咬合榫頭用電繡會散開，織章勉強可以，最穩的是 PVC 軟膠。建議換工藝或改用棋盤格切法。`,
       en: 'Interlocking tabs must be chunky (8mm or more) — no thin puzzle knobs.',
     });
   }
@@ -245,6 +289,14 @@ function setNotes(values: Record<string, string>) {
 
   if (edge === 'merrow' && !shape.merrowable) {
     out.push({ fieldId: 'master_shape', zh: `母版「${shape.label}」本身就不能包邊。`, en: '' });
+  }
+
+  if (split.value === 'series') {
+    out.push({
+      fieldId: 'split',
+      zh: '系列式套章不需要對齊，但版型必須完全一致：外框、字級、留白、邊色都要共用同一份模板，請工廠用同一個版去改主圖。',
+      en: '',
+    });
   }
 
   if (size <= 40) {
@@ -296,7 +348,9 @@ function build(values: Record<string, string>, modes: Record<string, FillMode>) 
   j.kv('subject', `Scout commemorative patch SET — ${values.set_theme || ''}, the complete assembled artwork`, 'set_theme');
   j.kvForce(
     'stage',
-    'STEP 1 of 2 — render the complete assembled artwork as ONE image. The individual pieces are generated afterwards from this master.',
+    split.value === 'series'
+      ? 'STEP 1 of 2 — render the shared template: all the variants side by side in one image, so the common frame and layout are locked in. Each badge is produced separately afterwards.'
+      : 'STEP 1 of 2 — render the complete assembled artwork as ONE image. The individual pieces are generated afterwards from this master.',
     'split'
   );
 
@@ -310,6 +364,13 @@ function build(values: Record<string, string>, modes: Record<string, FillMode>) 
     } edge.`,
     'seam_color'
   );
+  if (split.value === 'jigsaw') {
+    j.kvForce(
+      'interlock',
+      `${kw('tab_shape')}, tabs about ${values.tab_mm || '10'}mm wide, ${kw('fit')}`,
+      'tab_shape'
+    );
+  }
   j.kvForce(
     'composition_rule',
     'Keep faces, lettering and key shapes well clear of the cut lines, and make every single piece readable on its own.',
@@ -382,6 +443,7 @@ function assembledSize(splitId: string, count: number, each: number) {
     const cols = count === 4 ? 2 : 3;
     return `${each * cols} × ${each * Math.ceil(count / cols)} mm`;
   }
+  if (splitId === 'series') return `${each} mm × ${count} 款（不拼合）`;
   if (splitId === 'pie') return `${each * 2} mm`;
   if (splitId === 'ring') return `${each * 3} mm（展示板尺寸）`;
   return `${each * count} × ${each} mm`;
@@ -495,6 +557,7 @@ export const setSystem: CardSystem = {
     return {
       d: sh.path(box),
       splits: sp.lines(box, count),
+      pieces: sp.pieces(box, count),
       fieldId: 'master_shape',
       note: `母版：${sh.label} · 切法：${sp.label}（${count} 片）—— ${sp.note}`,
     };

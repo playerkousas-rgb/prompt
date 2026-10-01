@@ -127,6 +127,8 @@ export interface OutlineSpec {
   d: string;
   /** 切割線（組合章用），畫成虛線 */
   splits?: string[];
+  /** 拆開預覽：每一片自己的形狀與往外推的位移 */
+  pieces?: { d: string; dx: number; dy: number; label: string; clip: boolean }[];
   /** 圖下方的一句說明 */
   note?: string;
   /** 哪一格控制這個外框（滑過會亮） */

@@ -287,6 +287,19 @@ export interface SplitDef {
   lines: (b: Box, count: number) => string[];
   /** 是否每片都還是規則外形（還能包邊） */
   piecesRegular: boolean;
+  /**
+   * 拆開預覽：每一片自己的形狀 + 往外推開的方向。
+   * clip = true 代表這片要被母版外框裁切（例如把圓切成橫條）。
+   */
+  pieces: (b: Box, count: number) => PiecePreview[];
+}
+
+export interface PiecePreview {
+  d: string;
+  dx: number;
+  dy: number;
+  label: string;
+  clip: boolean;
 }
 
 export const SPLITS: SplitDef[] = [
@@ -300,6 +313,24 @@ export const SPLITS: SplitDef[] = [
     assembled: 'the circle is divided into equal pie wedges radiating from the centre',
     pieceName: (i, t) => `第 ${i + 1} 片（${t} 等分扇形）`,
     piecesRegular: false,
+    pieces: (b, count) => {
+      const cx = b.x + b.w / 2;
+      const cy = b.y + b.h / 2;
+      const R = Math.max(b.w, b.h);
+      const g = 16;
+      return Array.from({ length: count }, (_, i) => {
+        const a0 = (i / count) * Math.PI * 2 - Math.PI / 2;
+        const a1 = ((i + 1) / count) * Math.PI * 2 - Math.PI / 2;
+        const am = (a0 + a1) / 2;
+        return {
+          d: `M ${n(cx)} ${n(cy)} L ${n(cx + R * Math.cos(a0))} ${n(cy + R * Math.sin(a0))} A ${n(R)} ${n(R)} 0 0 1 ${n(cx + R * Math.cos(a1))} ${n(cy + R * Math.sin(a1))} Z`,
+          dx: Math.cos(am) * g,
+          dy: Math.sin(am) * g,
+          label: `第 ${i + 1} 片`,
+          clip: true,
+        };
+      });
+    },
     lines: (b, count) => {
       const cx = b.x + b.w / 2;
       const cy = b.y + b.h / 2;
@@ -320,6 +351,24 @@ export const SPLITS: SplitDef[] = [
     assembled: 'the artwork is divided into a grid of equal rectangular tiles',
     pieceName: (i, t) => `第 ${i + 1} 格（共 ${t} 格）`,
     piecesRegular: true,
+    pieces: (b, count) => {
+      const cols = count === 4 ? 2 : 3;
+      const rows = Math.ceil(count / cols);
+      const cw = b.w / cols;
+      const ch = b.h / rows;
+      const g = 14;
+      return Array.from({ length: count }, (_, i) => {
+        const c = i % cols;
+        const rI = Math.floor(i / cols);
+        return {
+          d: roundRect({ x: b.x + c * cw, y: b.y + rI * ch, w: cw, h: ch }, 10),
+          dx: (c - (cols - 1) / 2) * g,
+          dy: (rI - (rows - 1) / 2) * g,
+          label: `第 ${i + 1} 格`,
+          clip: true,
+        };
+      });
+    },
     lines: (b, count) => {
       const cols = count === 4 ? 2 : 3;
       const rows = Math.ceil(count / cols);
@@ -345,6 +394,17 @@ export const SPLITS: SplitDef[] = [
     assembled: 'the artwork is sliced into equal horizontal bands, like a panorama cut into strips',
     pieceName: (i, t) => `第 ${i + 1} 條（由上往下，共 ${t} 條）`,
     piecesRegular: true,
+    pieces: (b, count) => {
+      const bh = b.h / count;
+      const g = 14;
+      return Array.from({ length: count }, (_, i) => ({
+        d: roundRect({ x: b.x, y: b.y + i * bh, w: b.w, h: bh }, 8),
+        dx: 0,
+        dy: (i - (count - 1) / 2) * g,
+        label: `第 ${i + 1} 條`,
+        clip: true,
+      }));
+    },
     lines: (b, count) =>
       Array.from({ length: count - 1 }, (_, i) => {
         const y = b.y + (b.h / count) * (i + 1);
@@ -361,6 +421,28 @@ export const SPLITS: SplitDef[] = [
     assembled: 'one larger central medallion surrounded by smaller self-contained satellite badges, arranged as a display',
     pieceName: (i, t) => (i === 0 ? '中心主章' : `外圈第 ${i} 片（共 ${t - 1} 片）`),
     piecesRegular: true,
+    pieces: (b, count) => {
+      const cx = b.x + b.w / 2;
+      const cy = b.y + b.h / 2;
+      const R = Math.min(b.w, b.h) / 2;
+      const r = R * 0.34;
+      const sr = R * 0.26;
+      const sat = count - 1;
+      const circle = (x: number, y: number, rad: number) =>
+        `M ${n(x - rad)} ${n(y)} a ${n(rad)} ${n(rad)} 0 1 0 ${n(rad * 2)} 0 a ${n(rad)} ${n(rad)} 0 1 0 ${n(-rad * 2)} 0 Z`;
+      const out: PiecePreview[] = [{ d: circle(cx, cy, r), dx: 0, dy: 0, label: '中心主章', clip: false }];
+      for (let i = 0; i < sat; i++) {
+        const a = (i / sat) * Math.PI * 2 - Math.PI / 2;
+        out.push({
+          d: circle(cx + R * 0.68 * Math.cos(a), cy + R * 0.68 * Math.sin(a), sr),
+          dx: Math.cos(a) * 10,
+          dy: Math.sin(a) * 10,
+          label: `外圈 ${i + 1}`,
+          clip: false,
+        });
+      }
+      return out;
+    },
     lines: (b, count) => {
       const cx = b.x + b.w / 2;
       const cy = b.y + b.h / 2;
@@ -388,6 +470,31 @@ export const SPLITS: SplitDef[] = [
     assembled: 'the artwork is divided into interlocking jigsaw pieces, each with a chunky rounded tab and a matching notch',
     pieceName: (i, t) => `拼圖第 ${i + 1} 片（共 ${t} 片）`,
     piecesRegular: false,
+    pieces: (b, count) => {
+      const pw = b.w / count;
+      const g = 18;
+      const t = Math.min(pw, b.h) * 0.16;
+      const cy = b.y + b.h / 2;
+      return Array.from({ length: count }, (_, i) => {
+        const x0 = b.x + pw * i;
+        const x1 = x0 + pw;
+        const right =
+          i < count - 1
+            ? `L ${n(x1)} ${n(cy - t)} A ${n(t)} ${n(t)} 0 1 1 ${n(x1)} ${n(cy + t)} L ${n(x1)} ${n(b.y + b.h)}`
+            : `L ${n(x1)} ${n(b.y + b.h)}`;
+        const left =
+          i > 0
+            ? `L ${n(x0)} ${n(cy + t)} A ${n(t)} ${n(t)} 0 1 1 ${n(x0)} ${n(cy - t)} L ${n(x0)} ${n(b.y)}`
+            : `L ${n(x0)} ${n(b.y)}`;
+        return {
+          d: `M ${n(x0)} ${n(b.y)} L ${n(x1)} ${n(b.y)} ${right} L ${n(x0)} ${n(b.y + b.h)} ${left} Z`,
+          dx: (i - (count - 1) / 2) * g,
+          dy: 0,
+          label: `拼圖 ${i + 1}`,
+          clip: true,
+        };
+      });
+    },
     lines: (b, count) => {
       // 垂直咬合線：直線中間加一個半圓榫
       const out: string[] = [];
@@ -405,6 +512,37 @@ export const SPLITS: SplitDef[] = [
         );
       }
       return out;
+    },
+  },
+  {
+    value: 'series',
+    label: '系列式（同框換角色）',
+    desc: '不切開：全套共用同一個外框與版型，每片只換主角、小隊或年份',
+    counts: [2, 3, 4, 5, 6],
+    note: '生產上最單純（每片都是一般的章），但版型一定要完全一致：外框、字級、留白都共用，不然擺在一起會歪。',
+    keywords: 'one badge from a coordinated series that all share the same frame and layout',
+    assembled: 'not cut apart — the set is several separate badges sharing one identical frame and layout, each with a different hero subject',
+    pieceName: (i, t) => `系列第 ${i + 1} 款（共 ${t} 款）`,
+    piecesRegular: true,
+    lines: () => [],
+    pieces: (b, count) => {
+      const cols = count <= 3 ? count : Math.ceil(count / 2);
+      const rows = Math.ceil(count / cols);
+      const cw = b.w / cols;
+      const ch = b.h / rows;
+      const pad = Math.min(cw, ch) * 0.12;
+      return Array.from({ length: count }, (_, i) => {
+        const c = i % cols;
+        const rI = Math.floor(i / cols);
+        const bx = { x: b.x + c * cw + pad, y: b.y + rI * ch + pad, w: cw - pad * 2, h: ch - pad * 2 };
+        return {
+          d: ellipse(bx),
+          dx: 0,
+          dy: 0,
+          label: `第 ${i + 1} 款`,
+          clip: false,
+        };
+      });
     },
   },
 ];

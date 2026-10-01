@@ -38,6 +38,12 @@ export interface WoggleTypeDef {
   shot: string;
   /** 做法上的提醒（中文，顯示在對照圖下方） */
   note: string;
+  /** 手工做的（不是交給工廠量產的款式） */
+  handmade?: boolean;
+  /** 規格單上這款要填的尺寸怎麼寫 */
+  sizeSpec: (inner: string, height: string, face: string) => string;
+  /** 工廠端的開模 / 製版方式 */
+  tooling: string;
 }
 
 export const WOGGLE_TYPES: WoggleTypeDef[] = [
@@ -54,6 +60,9 @@ export const WOGGLE_TYPES: WoggleTypeDef[] = [
     keywords:
       "a Turk's head knot woggle woven from round leather cord, continuous over-under braid forming a ring, no flat face",
     shot: 'three-quarter view showing the braid structure clearly',
+    handmade: true,
+    sizeSpec: (i, h) => `內徑 ${i} mm × 高 ${h} mm`,
+    tooling: '手工編織，無開模',
     note: '繩結類沒有「正面圖案」可言 —— 它的設計就是編法與配色，想放團徽要另外穿金屬牌。',
   },
   {
@@ -69,6 +78,9 @@ export const WOGGLE_TYPES: WoggleTypeDef[] = [
     keywords:
       "a Turk's head knot woggle woven from 550 paracord, tight glossy nylon braid, two colours spiralling through the weave",
     shot: 'three-quarter view, close enough to count the cord passes',
+    handmade: true,
+    sizeSpec: (i, h) => `內徑 ${i} mm × 高 ${h} mm`,
+    tooling: '手工編織，無開模',
     note: '雙色要指定「哪一色走外圈」，不然 AI 會畫成隨機混色。',
   },
   {
@@ -84,6 +96,9 @@ export const WOGGLE_TYPES: WoggleTypeDef[] = [
     keywords:
       'a woggle woven from flat plastic packing strap, wide glossy flat bands crossing over and under, seven-bight three-pass ring',
     shot: 'three-quarter view, flat bands catching the light',
+    handmade: true,
+    sizeSpec: (i, h) => `內徑 ${i} mm × 高 ${h} mm`,
+    tooling: '手工編織，無開模',
     note: '扁帶跟圓繩的編法長得完全不一樣，提示詞一定要寫 flat bands，不然 AI 會畫成圓繩。',
   },
   {
@@ -99,6 +114,8 @@ export const WOGGLE_TYPES: WoggleTypeDef[] = [
     keywords:
       'a flat vegetable-tanned leather neckerchief slide, the neckerchief passing through two punched slots, tooled and stamped relief on the front face',
     shot: 'straight-on front view of the leather face, slight angle to show thickness',
+    sizeSpec: (i, h, f) => `正面 ${f} mm，皮厚 2.5–3 mm，穿孔內徑 ${i} mm`,
+    tooling: '壓印鋼模（一次性模費），或雷雕免開模',
     note: '皮革壓印最小可讀字高約 3 mm；字太多會糊，名字 + 團號兩行就是上限。',
   },
   {
@@ -114,6 +131,8 @@ export const WOGGLE_TYPES: WoggleTypeDef[] = [
     keywords:
       'a turned wooden woggle ring with visible grain running around the body, a laser-engraved emblem burned into the face',
     shot: 'three-quarter view, warm light raking across the grain',
+    sizeSpec: (i, h) => `內徑 ${i} mm × 高 ${h} mm，壁厚 4–5 mm`,
+    tooling: '雷雕免開模；車床件需治具',
     note: '雷雕是燒焦的深褐色，不是彩色 —— 想要顏色要另外上漆或鑲嵌。',
   },
   {
@@ -129,6 +148,8 @@ export const WOGGLE_TYPES: WoggleTypeDef[] = [
     keywords:
       'a 3D-printed woggle, clean parametric shell with a raised emblem on the front, subtle horizontal layer lines, single filament colour',
     shot: 'three-quarter product render on a plain background',
+    sizeSpec: (i, h) => `內徑 ${i} mm × 高 ${h} mm，壁厚 ≥ 2 mm`,
+    tooling: '免開模，提供 STL / STEP 檔',
     note: '單色列印只有「凸起 / 凹陷」兩種層次，所以圖案要靠輪廓辨識，不能靠顏色分區。',
   },
   {
@@ -144,6 +165,8 @@ export const WOGGLE_TYPES: WoggleTypeDef[] = [
     keywords:
       'a die-cast metal neckerchief slide, enamel colour fill between raised metal lines, polished plating, a soldered loop on the back for the neckerchief',
     shot: 'straight-on front view, crisp specular highlights on the metal lines',
+    sizeSpec: (i, h, f) => `正面 ${f} mm，厚 2–3 mm，背環內徑 ${i} mm`,
+    tooling: '需開鋅合金壓鑄模（模費一次性）',
     note: '琺瑯的每一塊顏色都必須被金屬線完全圍住；開放式漸層做不出來。',
   },
   {
@@ -159,6 +182,8 @@ export const WOGGLE_TYPES: WoggleTypeDef[] = [
     keywords:
       'a moulded soft PVC rubber woggle, layered 3D relief in bright solid colours, matte rubber surface, rounded edges',
     shot: 'three-quarter view, even soft light on the rubber surface',
+    sizeSpec: (i, h) => `內徑 ${i} mm × 高 ${h} mm`,
+    tooling: '需開軟膠模（模費一次性）',
     note: '軟膠是一層一層堆出來的，所以要說清楚「哪一塊凸起、哪一塊凹下」。',
   },
   {
@@ -174,6 +199,8 @@ export const WOGGLE_TYPES: WoggleTypeDef[] = [
     keywords:
       'a fabric woggle made from an embroidered patch rolled into a tube and stitched, visible thread texture and a stitched seam at the back',
     shot: 'three-quarter view, thread texture visible',
+    sizeSpec: (i, h) => `展開長 ${Math.round(Number(i) * 3.14)} mm × 高 ${h} mm，內襯塑膠環`,
+    tooling: '織嘜 / 電繡製版費',
     note: '布面會軟，久了會塌 —— 裡面通常要襯一圈塑膠環，描述時要提到它是挺的。',
   },
   {
@@ -189,6 +216,8 @@ export const WOGGLE_TYPES: WoggleTypeDef[] = [
     keywords:
       'a sculpted figurine neckerchief slide, a fully modelled character or object seen from the front, with a short tube glued behind it for the neckerchief',
     shot: 'three-quarter hero view of the figurine, the tube barely visible behind',
+    sizeSpec: (i, h, f) => `造型最大外徑 ${f} mm，背管內徑 ${i} mm`,
+    tooling: '需開模（樹脂或軟膠），或 3D 列印免開模',
     note: '造型類的重點是剪影：從兩公尺外只看得到輪廓，細節全部會消失。',
   },
   {
@@ -204,6 +233,8 @@ export const WOGGLE_TYPES: WoggleTypeDef[] = [
     keywords:
       'a cast resin woggle, translucent body with small objects suspended inside, glossy domed surface catching light',
     shot: 'three-quarter view back-lit so the inclusions glow',
+    sizeSpec: (i, h) => `內徑 ${i} mm × 高 ${h} mm`,
+    tooling: '矽膠軟模，小量可手工灌製',
     note: '包埋物要說明「懸浮在中間」，否則 AI 會把它畫成印在表面的圖案。',
   },
   {
@@ -219,6 +250,8 @@ export const WOGGLE_TYPES: WoggleTypeDef[] = [
     keywords:
       'a beaded neckerchief slide, tiny seed beads stitched in rows around a tube, the pattern built from individual bead pixels',
     shot: 'three-quarter view close enough to see individual beads',
+    sizeSpec: (i, h) => `內徑 ${i} mm × 高 ${h} mm`,
+    tooling: '全手工，無開模',
     note: '珠子就是像素：圖案必須能用方格紙畫出來，曲線與小字一律放棄。',
   },
 ];

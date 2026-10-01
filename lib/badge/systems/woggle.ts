@@ -11,7 +11,7 @@
 // ---------------------------------------------------------------------------
 
 import { JsonWriter, PromptWriter, keywordsOf, makeResolver } from '../../schema/builder';
-import type { CardSystem, FieldDef, FillMode, ZoneDef } from '../../schema/types';
+import type { CardSystem, ExtraOutput, FieldDef, FillMode, ZoneDef } from '../../schema/types';
 import { WOGGLE_GROUPS } from '../groups';
 import { WOGGLE_TYPES, woggleTypeById, HOLD_BY_FAMILY } from '../woggleTypes';
 
@@ -23,15 +23,17 @@ const zones: ZoneDef[] = [
     fieldIds: ['woggle_type', 'occasion', 'material_color', 'knot', 'cord_pattern', 'mount', 'finish'],
     x: 60, y: 150, w: 520, h: 340, tone: 'soft',
   },
-  { id: 'face', label: '正面圖案', fieldIds: ['emblem', 'art_style', 'symbols'], x: 190, y: 210, w: 260, h: 220 },
+  { id: 'face', label: '正面圖案', fieldIds: ['emblem', 'art_style', 'symbols', 'color_count', 'face_mm'], x: 190, y: 210, w: 260, h: 220 },
   { id: 'bore', label: '內徑（領巾穿過這裡）', fieldIds: ['inner_mm'], x: 262, y: 280, w: 116, h: 92 },
   { id: 'height', label: '高度', fieldIds: ['height_mm'], x: 60, y: 150, w: 54, h: 340 },
   { id: 'engrave', label: '刻字 / 名牌', fieldIds: ['engrave_text', 'engrave_style'], x: 180, y: 452, w: 280, h: 62 },
-  { id: 'scarf', label: '領巾（配色參考）', fieldIds: ['scarf_color'], x: 60, y: 528, w: 520, h: 76, tone: 'soft' },
+  { id: 'scarf', label: '領巾（配色參考）', fieldIds: ['scarf_color', 'qty'], x: 60, y: 528, w: 520, h: 76, tone: 'soft' },
 ];
 
-const TYPES = WOGGLE_TYPES;
-const typeOf = (values: Record<string, string>) => woggleTypeById(values.woggle_type || 'knot_leather');
+// 使用者的用途是「出設計圖交工廠生產」，所以手工編織類（繩結）不列入選項。
+// 資料仍保留在 woggleTypes.ts，哪天要做手作教學再打開。
+const TYPES = WOGGLE_TYPES.filter((t) => !t.handmade);
+const typeOf = (values: Record<string, string>) => woggleTypeById(values.woggle_type || 'leather_plate');
 
 const fields: FieldDef[] = [
   {
@@ -40,7 +42,7 @@ const fields: FieldDef[] = [
     control: { kind: 'chips', options: TYPES.map((t) => ({
       value: t.value, label: t.label, swatch: t.swatch, desc: t.desc,
     })) },
-    aiFillable: false, default: 'knot_leather', essential: true,
+    aiFillable: false, default: 'leather_plate', essential: true,
   },
   {
     id: 'occasion', label: '用途', group: 'purpose', impact: 'low',
@@ -134,6 +136,25 @@ const fields: FieldDef[] = [
     aiFillable: false, default: '25',
   },
 
+  {
+    id: 'face_mm', label: '正面尺寸（mm）', group: 'visual', impact: 'mid',
+    hint: '平片、金屬、造型類要給工廠的是「正面多大」，不是內徑。',
+    control: { kind: 'select', options: ['25 × 25', '30 × 30', '35 × 25', '40 × 30', '45 × 35'].map((x) => ({ value: x, label: `${x} mm` })) },
+    showIf: (v) => ['plate', 'figurine'].includes(typeOf(v).family),
+    aiFillable: false, default: '30 × 30',
+  },
+  {
+    id: 'color_count', label: '色數', group: 'style', impact: 'mid',
+    hint: '琺瑯、軟膠、繡面都是按色數報價。',
+    control: { kind: 'select', options: ['1', '2', '3', '4', '5', '6'].map((x) => ({ value: x, label: `${x} 色` })) },
+    aiFillable: false, default: '3',
+  },
+  {
+    id: 'qty', label: '預計數量', group: 'style', impact: 'low',
+    hint: '會寫進規格單，讓工廠一次把單價級距報回來。',
+    control: { kind: 'select', options: ['50', '100', '200', '300', '500'].map((x) => ({ value: x, label: `${x} 個` })) },
+    aiFillable: false, default: '100',
+  },
   {
     id: 'engrave_text', label: '刻字內容', group: 'text', impact: 'mid',
     hint: '名字、團號、年份擇一就好，巾圈的面真的很小。',
@@ -298,8 +319,98 @@ function build(values: Record<string, string>, modes: Record<string, FillMode>) 
     jsonLines: lines,
     plain: lines.map((l) => l.text).join('\n'),
     negative: NEGATIVE,
+    extras: [specSheet(values, material)],
   };
 }
+
+/**
+ * 給工廠的巾圈規格單。
+ * （使用者的目的就是出設計圖交工廠生產，所以生圖提示詞之外一定要有這一份。）
+ */
+function specSheet(values: Record<string, string>, material: string): ExtraOutput {
+  const t = typeOf(values);
+  const inner = values.inner_mm || '22';
+  const height = values.height_mm || '25';
+  const face = values.face_mm || '30 × 30';
+  const engrave = (values.engrave_text || '').trim();
+  const engraveWay =
+    ENGRAVE_ZH[values.engrave_style || 'laser'] ?? '雷射雕刻';
+  const finish = FINISH_ZH[values.finish || 'matte'] ?? '霧面';
+
+  const rows: [string, string][] = [
+    ['品名', `童軍巾圈（領巾圈）— ${t.label}`],
+    ['構造', FAMILY_ZH[t.family]],
+    ['材質', material],
+    ['尺寸', t.sizeSpec(inner, height, face)],
+    ['正面圖案', (values.emblem || '').trim() || '（無，素面）'],
+    ['色數', `${values.color_count || '3'} 色`],
+    ['刻字', engrave ? `「${engrave}」—— ${engraveWay}` : '不刻字'],
+    ['表面處理', finish],
+    ['領巾固定方式', MOUNT_ZH[values.mount || 'back_loop'] ?? '背面焊／黏一個環'],
+    ['開模 / 製版', t.tooling],
+    ['預計數量', `${values.qty || '100'} 個`],
+  ];
+
+  const notes = [t.note];
+  if (t.hasFace && engrave) {
+    notes.push(
+      `這個做法可讀的最小字高約 ${t.minTextMm} mm，「${engrave}」共 ${engrave.length} 個字元，請工廠確認在 ${
+        t.family === 'plate' || t.family === 'figurine' ? face : inner + ' mm 內徑'
+      } 的面上排得下。`
+    );
+  }
+  notes.push('領巾厚度各團不同，開模前請先寄一條實際領巾過去試穿，確認鬆緊。');
+
+  return {
+    id: 'spec',
+    label: '給工廠的規格單',
+    desc: '含構造、尺寸、開模方式與報價項目，可直接貼給廠商',
+    text: [
+      '童軍巾圈 製作規格單',
+      '——————————————————————',
+      ...rows.map(([k, v]) => `${k}：${v}`),
+      '',
+      '【要注意的地方】',
+      ...notes.map((x, i) => `${i + 1}. ${x}`),
+      '',
+      '【報價請一併回覆】',
+      '1. 開模費 / 製版費，以及模具是否保管、保管多久',
+      '2. 最低訂量與不同數量的單價級距',
+      '3. 打樣費、打樣時間，是否可先出 3D 圖或白樣',
+      '4. 色號是否可對 Pantone，公差多少',
+      '5. 交期（含海運／空運）與包裝方式（散裝 / 單個 OPP 袋 / 紙卡）',
+    ].join('\n'),
+  };
+}
+
+const FAMILY_ZH: Record<string, string> = {
+  knot: '繩結環（手工編織）',
+  solid: '實心環（單一材質成形）',
+  plate: '平片滑扣（正面是一片面，背後或片上穿領巾）',
+  figurine: '立體造型（公仔背面黏短管）',
+  fabric: '布面環（繡片或織帶縫成筒）',
+};
+
+const ENGRAVE_ZH: Record<string, string> = {
+  none: '不刻字',
+  laser: '雷射雕刻（凹）',
+  stamp: '壓印（皮革）',
+  relief: '浮雕（凸）',
+};
+
+const FINISH_ZH: Record<string, string> = {
+  matte: '霧面',
+  satin: '緞面',
+  gloss: '亮面',
+  waxed: '上蠟（皮革）',
+};
+
+const MOUNT_ZH: Record<string, string> = {
+  slots: '正面打兩道孔，領巾直接穿過',
+  three_hole: '三孔皮片，領巾編穿三孔',
+  back_loop: '背面焊／黏一個環',
+  snap: '壓扣（可拆開）',
+};
 
 const FAMILY_EN: Record<string, string> = {
   knot: 'woven cord ring (knot type) — there is no flat front face',
@@ -333,7 +444,7 @@ export const woggleSystem: CardSystem = {
   fields,
   build,
   outline: (values) => {
-    const t = woggleTypeById(values.woggle_type || 'knot_leather');
+    const t = woggleTypeById(values.woggle_type || 'leather_plate');
     const cx = VB.w / 2;
     const cy = VB.h / 2;
     if (t.family === 'plate' || t.family === 'figurine') {
