@@ -16,6 +16,7 @@ import { PromptPanel } from '@/components/studio/PromptPanel';
 import { ResultPanel } from '@/components/studio/ResultPanel';
 import { SettingsModal, type GenSettings } from '@/components/studio/SettingsModal';
 import { ReferenceUpload } from '@/components/studio/ReferenceUpload';
+import { ReferenceGuide } from '@/components/studio/ReferenceGuide';
 import { hasReference } from '@/lib/card/reference';
 import { providerTakesReference } from '@/lib/providers';
 
@@ -246,11 +247,7 @@ function Studio() {
             onModeChange={setMode}
             focusField={focusField}
             simple={simple}
-            slot={
-              refOn ? (
-                <ReferenceUpload image={refImage} onImage={setRefImage} kind={state.values.ref_use} />
-              ) : null
-            }
+            slot={refOn ? <ReferenceGuide kind={state.values.ref_use} /> : null}
           />
         </section>
 
@@ -305,21 +302,16 @@ function Studio() {
                 {loading ? '生成中' : '生成圖片'}
               </button>
             </div>
-            {refOn && (
-              <p
-                className={`rounded-lg border px-2 py-1.5 text-center text-[11px] leading-snug ${
-                  refTakesImage
-                    ? 'border-emerald-400/30 bg-emerald-400/5 text-emerald-300'
-                    : 'border-amber-400/30 bg-amber-400/5 text-amber-300'
-                }`}
-              >
-                {refTakesImage
-                  ? refImage
-                    ? '出圖時會把你的參考圖一起送出。'
-                    : '這個模型吃參考圖 —— 記得在左邊選一張照片。'
-                  : '這個供應商／模型不吃參考圖：請改用 Gemini 的 gemini-2.5-flash-image，或把提示詞複製到會讀圖的工具（ChatGPT、即夢…）再附上照片。'}
-              </p>
-            )}
+            {refOn &&
+              (refTakesImage ? (
+                // 這個模型（Gemini image）真的能讀圖，才提供站內附圖 —— 選用，不是主要流程
+                <ReferenceUpload image={refImage} onImage={setRefImage} kind={state.values.ref_use} />
+              ) : (
+                <p className="rounded-lg border border-slate-700 bg-slate-950/60 px-2 py-1.5 text-center text-[11px] leading-snug text-slate-400">
+                  站內這個供應商只吃文字。要附照片，請把右欄的提示詞複製到會讀圖的工具
+                  （ChatGPT、Gemini、即夢…），把照片放第一張。
+                </p>
+              ))}
             <p className="text-center text-[11px] text-slate-500">
               使用 <span className="text-slate-300">{provider.label}</span>
               {needsKey && <span className="text-amber-400"> · 尚未填入 API Key</span>}

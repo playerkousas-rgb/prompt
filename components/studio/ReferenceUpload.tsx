@@ -40,11 +40,13 @@ export function ReferenceUpload({
         )}
 
         <div className="min-w-0 flex-1">
-          <p className="text-xs font-semibold text-slate-200">{label}</p>
+          <p className="text-xs font-semibold text-slate-200">
+            （選用）在這裡出圖時附上{label}
+          </p>
           <p className="mt-0.5 text-[11px] leading-snug text-slate-400">
             {image
-              ? '已選好。複製提示詞到別的 AI 時，記得把這張圖當成第一張一起上傳。'
-              : '選一張清楚、正面、光線足夠的照片，效果最好。'}
+              ? '這張會跟著提示詞一起送給你選的模型。'
+              : '只有你現在選的模型讀得懂圖才會出現這一塊；大多數人是把提示詞複製去別的 AI 附圖。'}
           </p>
           <div className="mt-1.5 flex gap-1.5">
             <button className="btn-ghost !px-2.5 !py-1 text-[11px]" onClick={() => fileRef.current?.click()}>
