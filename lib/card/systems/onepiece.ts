@@ -1,5 +1,5 @@
 import { BASE_NEGATIVE, JsonWriter, PromptWriter, keywordsOf, makeResolver } from '../builder';
-import { classicFinishField } from '../classic';
+import { referenceFields } from '../reference';
 import type { CardSystem, FieldDef, FillMode, ZoneDef } from '../types';
 
 const zones: ZoneDef[] = [
@@ -7,7 +7,7 @@ const zones: ZoneDef[] = [
   { id: 'attr', label: '屬性圖示', fieldIds: ['attribute'], x: 566, y: 18, w: 48, h: 50 },
   {
     id: 'art', label: '滿版插圖（OP 卡的插圖是整張滿版）',
-    fieldIds: ['name', 'pose', 'expression', 'outfit', 'bg_setting', 'bg_details', 'bg_atmosphere', 'art_style', 'color', 'camera', 'haki'],
+    fieldIds: ['ref_use', 'ref_keep', 'ref_strength', 'name', 'pose', 'expression', 'outfit', 'bg_setting', 'bg_details', 'bg_atmosphere', 'art_style', 'color', 'camera', 'haki'],
     x: 20, y: 15, w: 594, h: 715, tone: 'soft',
   },
   { id: 'power', label: '力量值', fieldIds: ['power'], x: 421, y: 18, w: 133, h: 47 },
@@ -17,7 +17,7 @@ const zones: ZoneDef[] = [
   { id: 'name', label: '卡名帶', fieldIds: ['name'], x: 139, y: 738, w: 361, h: 50 },
   { id: 'typeband', label: '特徵帶', fieldIds: ['tribe'], x: 193, y: 797, w: 253, h: 30 },
   { id: 'meta', label: '卡號 / 繪師', fieldIds: ['set_number', 'illustrator'], x: 540, y: 834, w: 74, h: 20 },
-  { id: 'frame', label: '卡框 / 箔面', fieldIds: ['rarity', 'foil'], x: 6, y: 6, w: 618, h: 868, tone: 'soft' },
+  { id: 'frame', label: '整張卡（卡框 / 箔面 / 輸出形式）', fieldIds: ['rarity', 'foil', 'output_target'], x: 6, y: 6, w: 618, h: 868, tone: 'soft' },
 ];
 
 const COLORS = [
@@ -45,13 +45,13 @@ const fields: FieldDef[] = [
       { value: 'character', label: 'CHARACTER 角色', keywords: 'Character card layout, vertical action portrait' },
       { value: 'event', label: 'EVENT 事件', keywords: 'Event card layout, a dramatic moment rather than a posed portrait' },
       { value: 'stage', label: 'STAGE 場地', keywords: 'Stage card layout, the location itself is the subject' },
-    ] }, aiFillable: false, default: 'character' },
+    ] }, essential: true, aiFillable: false, default: 'character' },
   { id: 'name', label: '角色名', group: 'subject', impact: 'high',
     hint: '印在下方卡名帶，同時是生圖主體。',
-    control: { kind: 'text' }, aiFillable: false, default: '貝登堡' },
+    control: { kind: 'text' }, essential: true, aiFillable: false, default: '貝登堡' },
   { id: 'pose', label: '動作', group: 'subject', impact: 'high',
     hint: 'OP 卡最重視動勢，這格決定整張卡的衝擊力。',
-    control: { kind: 'textarea', rows: 2 }, aiFillable: true,
+    control: { kind: 'textarea', rows: 2 }, essential: true, aiFillable: true,
     aiInstruction: 'an explosive action pose chosen by the AI', default: '躍起揮拳，衣擺與披風被氣流掀起' },
   { id: 'expression', label: '表情', group: 'subject', impact: 'mid',
     hint: '熱血咆哮還是冷冽微笑，差很多。',
@@ -72,7 +72,7 @@ const fields: FieldDef[] = [
 
   { id: 'bg_setting', label: '地點', group: 'scene', impact: 'high',
     hint: '甲板、島嶼、海王類腹中…背景是 OP 世界觀的一半。',
-    control: { kind: 'text' }, aiFillable: true, aiInstruction: 'a vivid Grand Line location',
+    control: { kind: 'text' }, essential: true, aiFillable: true, aiInstruction: 'a vivid Grand Line location',
     default: '暴風中的海賊船甲板' },
   { id: 'bg_details', label: '背景細節', group: 'scene', impact: 'mid',
     hint: '幫後景長出層次。',
@@ -93,10 +93,10 @@ const fields: FieldDef[] = [
 
   { id: 'art_style', label: '美術風格', group: 'style', impact: 'high',
     hint: '影響力最大的一格，先決定這個。',
-    control: { kind: 'chips', options: STYLES }, aiFillable: false, default: 'alt_art' },
+    control: { kind: 'chips', options: STYLES }, essential: true, aiFillable: false, default: 'alt_art' },
   { id: 'color', label: '卡片顏色', group: 'style', impact: 'high',
     hint: '不只是卡框顏色，整張畫面的主色都會跟著走。',
-    control: { kind: 'chips', options: COLORS }, aiFillable: false, default: 'red' },
+    control: { kind: 'chips', options: COLORS }, essential: true, aiFillable: false, default: 'red' },
   { id: 'attribute', label: '屬性', group: 'style', impact: 'low',
     hint: '右上角的武器圖示。',
     control: { kind: 'select', options: [
@@ -133,7 +133,7 @@ const fields: FieldDef[] = [
       { value: 'artwork', label: '只要插圖', keywords: 'a standalone full-bleed character illustration with no card frame and no text' },
       { value: 'full_card', label: '整張實體卡', keywords: 'a complete One Piece Card Game card including frame, cost bubble, power value and effect text box' },
       { value: 'mockup', label: '實體卡情境照', keywords: 'a product photograph of the physical card, angled under studio light with visible foil refraction' },
-    ] }, aiFillable: false, default: 'artwork' },
+    ] }, essential: true, aiFillable: false, default: 'artwork' },
   { id: 'rarity', label: '稀有度', group: 'finish', impact: 'high',
     hint: '決定是否滿版、有無豪華邊框。',
     control: { kind: 'chips', options: [
@@ -142,7 +142,7 @@ const fields: FieldDef[] = [
       { value: 'sr', label: 'SR 超稀有', desc: '全箔、動態構圖', keywords: 'super rare, full foil with dynamic composition' },
       { value: 'sec', label: 'SEC 隱藏', desc: '最高規格、金屬質感', keywords: 'secret rare, premium metallic treatment, maximum visual density' },
       { value: 'alt', label: 'Alt Art 異畫', desc: '敘事滿版插圖', keywords: 'alternate art parallel, narrative full-bleed illustration with no frame intrusion' },
-    ] }, aiFillable: false, default: 'alt' },
+    ] }, essential: true, aiFillable: false, default: 'alt' },
   { id: 'foil', label: '箔面工藝', group: 'finish', impact: 'mid',
     hint: '只有在實體卡 / 情境照模式才看得出來。',
     control: { kind: 'chips', options: [
@@ -239,7 +239,7 @@ function build(values: Record<string, string>, modes: Record<string, FillMode>) 
   };
 }
 
-fields.push(classicFinishField('onepiece'));
+fields.unshift(...referenceFields());
 
 export const onePieceSystem: CardSystem = {
   id: 'onepiece',

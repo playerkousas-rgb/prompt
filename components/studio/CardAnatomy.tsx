@@ -11,9 +11,12 @@ const VB_H = 880;
 export function CardAnatomy({
   system,
   onPickField,
+  simple = false,
 }: {
   system: CardSystem;
   onPickField: (fieldId: string) => void;
+  /** 簡易模式：藏掉換底圖、底圖濃度這些進階玩法 */
+  simple?: boolean;
 }) {
   const { resolved, setActive, togglePin } = useHighlight();
   const [customImage, setCustomImage] = useState<string | null>(null);
@@ -46,7 +49,7 @@ export function CardAnatomy({
             滑過左邊欄位 → 這裡對應的位置會亮起來。{system.ratio}
           </p>
         </div>
-        <div className="flex shrink-0 items-center gap-1">
+        <div className={`flex shrink-0 items-center gap-1 ${simple ? 'hidden' : ''}`}>
           <button
             className="btn-ghost !px-2.5 !py-1.5 text-xs"
             title="換成你自己的參考卡圖（只存在你的瀏覽器，不會上傳）"
@@ -80,7 +83,7 @@ export function CardAnatomy({
         </div>
       </div>
 
-      {!customImage && variants.length > 1 && (
+      {!simple && !customImage && variants.length > 1 && (
         <div className="flex flex-wrap gap-1.5">
           {variants.map((v, i) => {
             const on = i === variant;
@@ -187,7 +190,42 @@ export function CardAnatomy({
         </svg>
       </div>
 
-      {baseSrc && (
+      {/* 「這一塊由哪些欄位控制」—— 滑到哪、這裡就列出哪一塊的全部欄位 */}
+      <div className="min-h-[58px] rounded-xl border border-slate-800 bg-slate-950/60 p-2.5">
+        {activeZones.length ? (
+          activeZones.slice(0, 2).map((z) => (
+            <div key={z.id} className="mb-1 last:mb-0">
+              <p className="text-[11px] font-semibold text-cyan-200">{z.label}</p>
+              <div className="mt-1 flex flex-wrap gap-1">
+                {z.fieldIds.map((id) => (
+                  <button
+                    key={id}
+                    onClick={() => {
+                      togglePin(id);
+                      onPickField(id);
+                    }}
+                    onMouseEnter={() => setActive(id)}
+                    className={`rounded-md border px-1.5 py-px text-[10.5px] transition ${
+                      resolved === id
+                        ? 'border-cyan-400 bg-cyan-400/15 text-cyan-100'
+                        : 'border-slate-700 text-slate-400 hover:border-slate-500 hover:text-slate-200'
+                    }`}
+                  >
+                    {fieldLabel(id)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))
+        ) : (
+          <p className="text-[11px] leading-snug text-slate-500">
+            滑過左邊的欄位，或滑過上面任何一塊框 —— 這裡會列出
+            <span className="text-slate-300">那一塊是由哪幾格決定的</span>。
+          </p>
+        )}
+      </div>
+
+      {baseSrc && !simple && (
         <div className="flex items-center gap-2 px-1">
           <Layers2 size={13} className="shrink-0 text-slate-500" />
           <span className="shrink-0 text-[11px] text-slate-500">底圖濃度</span>

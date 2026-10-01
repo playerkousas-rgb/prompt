@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import { Lock, Sparkles, Pin, Info } from 'lucide-react';
+import { Lock, Sparkles, Pin, Crosshair, Braces } from 'lucide-react';
 import type { CardSystem, FieldDef, FillMode, GroupId } from '@/lib/card/types';
-import { GROUPS, IMPACT_META } from '@/lib/card/types';
+import { GROUPS, IMPACT_META, zoneSummary } from '@/lib/card/types';
 import { useHighlight } from './HighlightContext';
 
 interface Props {
@@ -13,9 +13,28 @@ interface Props {
   onChange: (id: string, value: string) => void;
   onModeChange: (id: string, mode: FillMode) => void;
   focusField: string | null;
+  /** 簡易模式：只留非填不可的那幾格 */
+  simple: boolean;
+  /** 參考圖上傳區（簡易模式也看得到） */
+  slot?: React.ReactNode;
 }
 
-export function FieldPanel({ system, values, modes, onChange, onModeChange, focusField }: Props) {
+/** 這一格在這個情境下該不該出現（例如沒附圖就不用問「要保留什麼特徵」） */
+function isRelevant(f: FieldDef, values: Record<string, string>) {
+  if ((f.id === 'ref_keep' || f.id === 'ref_strength') && (values.ref_use || 'none') === 'none') return false;
+  return true;
+}
+
+export function FieldPanel({
+  system,
+  values,
+  modes,
+  onChange,
+  onModeChange,
+  focusField,
+  simple,
+  slot,
+}: Props) {
   const [group, setGroup] = useState<GroupId>('subject');
   const { resolved, setActive, togglePin, pinned } = useHighlight();
 
@@ -26,73 +45,97 @@ export function FieldPanel({ system, values, modes, onChange, onModeChange, focu
     if (f) setGroup(f.group);
   }, [focusField, system]);
 
+  const visible = useMemo(
+    () => system.fields.filter((f) => isRelevant(f, values)),
+    [system, values]
+  );
+
   const byGroup = useMemo(() => {
     const m = new Map<GroupId, FieldDef[]>();
-    for (const f of system.fields) {
+    for (const f of visible) {
       if (!m.has(f.group)) m.set(f.group, []);
       m.get(f.group)!.push(f);
     }
     return m;
-  }, [system]);
+  }, [visible]);
 
   const groups = GROUPS.filter((g) => byGroup.has(g.id));
-  const current = byGroup.get(group) ?? [];
   const meta = GROUPS.find((g) => g.id === group);
+
+  // 簡易模式：不分頁，只列必填的那幾格，照 主角 → 場景 → 畫風 → 卡面 的順序
+  const simpleList = useMemo(() => {
+    const order = GROUPS.map((g) => g.id);
+    return visible
+      .filter((f) => f.essential)
+      .sort((a, b) => order.indexOf(a.group) - order.indexOf(b.group));
+  }, [visible]);
+
+  const current = simple ? simpleList : (byGroup.get(group) ?? []).slice().sort((a, b) => rank(a.impact) - rank(b.impact));
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="flex flex-wrap gap-1.5 border-b border-slate-800 p-3">
-        {groups.map((g) => {
-          const fs = byGroup.get(g.id)!;
-          const high = fs.filter((f) => f.impact === 'high').length;
-          return (
-            <button
-              key={g.id}
-              onClick={() => setGroup(g.id)}
-              className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
-                group === g.id
-                  ? 'bg-cyan-400 text-slate-950'
-                  : 'border border-slate-700 text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              {g.label}
-              {high > 0 && (
-                <span
-                  className={`ml-1.5 inline-block h-1.5 w-1.5 rounded-full align-middle ${
-                    group === g.id ? 'bg-slate-900/60' : 'bg-rose-400'
-                  }`}
-                  title={`${high} 個決定性欄位`}
-                />
-              )}
-            </button>
-          );
-        })}
-      </div>
-
-      {meta && (
-        <p className="border-b border-slate-800/60 bg-slate-950/40 px-4 py-2 text-[11px] text-slate-500">
-          {meta.desc}
+      {simple ? (
+        <p className="border-b border-slate-800 px-4 py-2.5 text-[11px] leading-relaxed text-slate-400">
+          <span className="font-semibold text-slate-200">簡易模式</span>：只問{simpleList.length} 格，
+          其他都用實測過的預設值。想細調就切到右上角的「進階」。
         </p>
+      ) : (
+        <>
+          <div className="flex flex-wrap gap-1.5 border-b border-slate-800 p-3">
+            {groups.map((g) => {
+              const fs = byGroup.get(g.id)!;
+              const high = fs.filter((f) => f.impact === 'high').length;
+              return (
+                <button
+                  key={g.id}
+                  onClick={() => setGroup(g.id)}
+                  className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
+                    group === g.id
+                      ? 'bg-cyan-400 text-slate-950'
+                      : 'border border-slate-700 text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  {g.label}
+                  <span className={`ml-1.5 text-[10px] ${group === g.id ? 'text-slate-900/70' : 'text-slate-600'}`}>
+                    {fs.length}
+                  </span>
+                  {high > 0 && (
+                    <span
+                      className={`ml-1 inline-block h-1.5 w-1.5 rounded-full align-middle ${
+                        group === g.id ? 'bg-slate-900/60' : 'bg-rose-400'
+                      }`}
+                      title={`${high} 個決定性欄位`}
+                    />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+          {meta && (
+            <p className="border-b border-slate-800/60 bg-slate-950/40 px-4 py-2 text-[11px] text-slate-500">
+              {meta.desc}
+            </p>
+          )}
+        </>
       )}
 
       <div className="min-h-0 flex-1 space-y-1 overflow-y-auto p-2">
-        {current
-          .slice()
-          .sort((a, b) => rank(a.impact) - rank(b.impact))
-          .map((f) => (
-            <FieldRow
-              key={f.id}
-              field={f}
-              value={values[f.id] ?? ''}
-              mode={modes[f.id] ?? 'locked'}
-              active={resolved === f.id}
-              isPinned={pinned === f.id}
-              onHover={setActive}
-              onPin={togglePin}
-              onChange={onChange}
-              onModeChange={onModeChange}
-            />
-          ))}
+        {slot && <div className="mb-1 px-1">{slot}</div>}
+        {current.map((f) => (
+          <FieldRow
+            key={f.id}
+            field={f}
+            system={system}
+            value={values[f.id] ?? ''}
+            mode={modes[f.id] ?? 'locked'}
+            active={resolved === f.id}
+            isPinned={pinned === f.id}
+            onHover={setActive}
+            onPin={togglePin}
+            onChange={onChange}
+            onModeChange={onModeChange}
+          />
+        ))}
       </div>
     </div>
   );
@@ -104,6 +147,7 @@ function rank(i: FieldDef['impact']) {
 
 function FieldRow({
   field: f,
+  system,
   value,
   mode,
   active,
@@ -114,6 +158,7 @@ function FieldRow({
   onModeChange,
 }: {
   field: FieldDef;
+  system: CardSystem;
   value: string;
   mode: FillMode;
   active: boolean;
@@ -125,6 +170,7 @@ function FieldRow({
 }) {
   const im = IMPACT_META[f.impact];
   const ai = mode === 'ai';
+  const zones = zoneSummary(system, f.id);
 
   return (
     <div
@@ -173,18 +219,28 @@ function FieldRow({
         <Control field={f} value={value} onChange={(v) => onChange(f.id, v)} />
       </div>
 
-      <p className="mt-1.5 flex items-start gap-1 text-[11px] leading-snug text-slate-500">
-        <Info size={11} className="mt-0.5 shrink-0" />
-        <span>
-          {ai ? (
-            <span className="text-violet-300/90">
-              已交給 AI：出圖時會請模型自己想一個「{f.label}」，你填的內容不會被使用。
-            </span>
-          ) : (
-            f.hint
-          )}
-        </span>
-      </p>
+      {/* 「這格到底控制什麼」—— 卡面位置 + 提示詞鍵，兩個都寫清楚 */}
+      <div className="mt-1.5 space-y-1 text-[11px] leading-snug">
+        <p className="flex items-start gap-1 text-slate-400">
+          <Crosshair size={11} className="mt-0.5 shrink-0 text-cyan-400/80" />
+          <span>
+            <span className="text-slate-500">卡面位置：</span>
+            <span className="text-cyan-200/90">{zones}</span>
+          </span>
+        </p>
+        <p className="flex items-start gap-1 text-slate-500">
+          <Braces size={11} className="mt-0.5 shrink-0 text-slate-600" />
+          <span>
+            {ai ? (
+              <span className="text-violet-300/90">
+                已交給 AI：出圖時會請模型自己想一個「{f.label}」，你填的內容不會被使用。
+              </span>
+            ) : (
+              f.hint
+            )}
+          </span>
+        </p>
+      </div>
     </div>
   );
 }

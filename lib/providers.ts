@@ -51,6 +51,7 @@ export const PROVIDERS: ProviderDef[] = [
     keyHint: 'AIza... （Google AI Studio Key）',
     keyUrl: 'https://aistudio.google.com/apikey',
     models: [
+      { value: 'gemini-2.5-flash-image', label: 'Gemini 2.5 Flash Image（可讀參考圖）' },
       { value: 'imagen-4.0-generate-001', label: 'Imagen 4' },
       { value: 'imagen-3.0-generate-002', label: 'Imagen 3' },
     ],
@@ -69,6 +70,14 @@ export const PROVIDERS: ProviderDef[] = [
     ],
   },
 ];
+
+/**
+ * 這個供應商 / 模型能不能「看著你上傳的照片」出圖（圖生圖）。
+ * 目前只有 Gemini 的 image 系列可以；其他家一律只吃文字。
+ */
+export function providerTakesReference(providerId: string, model: string) {
+  return providerId === 'gemini' && /image/.test(model) && !model.startsWith('imagen');
+}
 
 export function getProvider(id: string) {
   return PROVIDERS.find((p) => p.id === id) ?? PROVIDERS[0];

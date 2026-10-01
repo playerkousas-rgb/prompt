@@ -1,5 +1,5 @@
 import { BASE_NEGATIVE, JsonWriter, PromptWriter, keywordsOf, makeResolver } from '../builder';
-import { classicFinishField } from '../classic';
+import { referenceFields } from '../reference';
 import type { CardSystem, FieldDef, FillMode, ZoneDef } from '../types';
 
 // ---------------------------------------------------------------------------
@@ -14,14 +14,14 @@ const zones: ZoneDef[] = [
     id: 'art',
     label: '插圖窗（AI 生圖的主戰場）',
     fieldIds: [
+      'ref_use', 'ref_keep', 'ref_strength',
       'subject_type', 'name', 'partner', 'pose', 'expression', 'outfit',
       'bg_setting', 'bg_details', 'bg_atmosphere', 'time_light', 'camera',
       'art_style', 'color_mood', 'line_quality', 'energy_type', 'detail_level',
     ],
     x: 22, y: 90, w: 585, h: 670, tone: 'soft',
   },
-  { id: 'category', label: '分類 / 身高體重', fieldIds: ['category'], x: 93, y: 428, w: 445, h: 20 },
-  { id: 'ability', label: '特性', fieldIds: ['ability_name', 'ability_text'], x: 93, y: 452, w: 445, h: 120 },
+  { id: 'ability', label: '特性', fieldIds: ['ability_name', 'ability_text'], x: 93, y: 430, w: 445, h: 142 },
   {
     id: 'attack1', label: '招式 1',
     fieldIds: ['attack1_cost', 'attack1_name', 'attack1_dmg', 'attack1_text'],
@@ -39,7 +39,7 @@ const zones: ZoneDef[] = [
   },
   { id: 'flavor', label: '風味文字', fieldIds: ['flavor'], x: 319, y: 808, w: 274, h: 34 },
   { id: 'setnum', label: '編號 / 繪師', fieldIds: ['set_number', 'illustrator'], x: 41, y: 810, w: 106, h: 48 },
-  { id: 'frame', label: '卡框 / 箔面', fieldIds: ['rarity', 'foil', 'border'], x: 8, y: 8, w: 614, h: 864, tone: 'soft' },
+  { id: 'frame', label: '整張卡（卡框 / 箔面 / 輸出形式）', fieldIds: ['rarity', 'foil', 'border', 'output_target'], x: 8, y: 8, w: 614, h: 864, tone: 'soft' },
 ];
 
 // ---------------------------------------------------------------------------
@@ -121,12 +121,14 @@ const fields: FieldDef[] = [
       { value: 'pokemon', label: '寶可夢（生物）', keywords: 'a Pokémon creature as the main subject' },
       { value: 'duo', label: '訓練家 + 夥伴同框', keywords: 'a human Trainer and their partner Pokémon sharing the frame as co-protagonists' },
     ] },
+    essential: true,
     aiFillable: false, default: 'duo',
   },
   {
     id: 'name', label: '卡名 / 角色名', group: 'subject', impact: 'high',
     hint: '會印在卡片左上角，同時當作生圖的主體描述。',
     control: { kind: 'text', placeholder: '例如：貝登堡' },
+    essential: true,
     aiFillable: false, default: '貝登堡',
   },
   {
@@ -140,6 +142,7 @@ const fields: FieldDef[] = [
     id: 'pose', label: '動作 / 姿勢', group: 'subject', impact: 'high',
     hint: '最影響「這張卡有沒有力量感」的一格。寫得越具體越穩。',
     control: { kind: 'textarea', rows: 2, placeholder: '右手作童軍三指敬禮，左手高舉精靈球' },
+    essential: true,
     aiFillable: true, aiInstruction: 'a dynamic heroic pose chosen by the AI',
     default: '右手作童軍三指敬禮，左手高舉精靈球準備投擲',
   },
@@ -163,6 +166,7 @@ const fields: FieldDef[] = [
     id: 'bg_setting', label: '地點', group: 'scene', impact: 'high',
     hint: '背景的骨架。空白時 AI 常常給你一片糊掉的漸層。',
     control: { kind: 'text', placeholder: '非洲草原上的廣闊平原' },
+    essential: true,
     aiFillable: true, aiInstruction: 'an environment that complements the subject',
     default: '非洲草原上的廣闊平原',
   },
@@ -212,12 +216,14 @@ const fields: FieldDef[] = [
     id: 'art_style', label: '美術風格', group: 'style', impact: 'high',
     hint: '全站影響力最大的一格。先選這個，再調其他。',
     control: { kind: 'chips', options: ART_STYLES },
+    essential: true,
     aiFillable: false, default: 'sar',
   },
   {
     id: 'energy_type', label: '屬性', group: 'style', impact: 'high',
     hint: '不只印在右上角，還會決定整張卡的主色與光效顏色。',
     control: { kind: 'chips', options: ENERGY },
+    essential: true,
     aiFillable: false, default: 'fire',
   },
   {
@@ -274,13 +280,6 @@ const fields: FieldDef[] = [
       { value: 'trainer', label: 'TRAINER 支援者' },
     ] },
     aiFillable: false, default: 'ex',
-  },
-  {
-    id: 'category', label: '分類 / 身高體重', group: 'cardface', impact: 'low',
-    hint: '卡面中間那條細資訊帶。',
-    control: { kind: 'text', placeholder: '火焰寶可夢  身高 1.7m  體重 90.5kg' },
-    aiFillable: true, aiInstruction: 'a flavourful species category plus height and weight',
-    default: '童軍訓練家  身高 1.72m  體重 62kg',
   },
   {
     id: 'ability_name', label: '特性名稱', group: 'cardface', impact: 'low',
@@ -389,12 +388,14 @@ const fields: FieldDef[] = [
       { value: 'full_card', label: '整張實體卡', desc: '含卡框與文字，但 AI 很容易寫錯字', keywords: 'a complete physical collectible trading card including the printed frame, text boxes and typography' },
       { value: 'mockup', label: '實體卡情境照', desc: '手拿卡 / 桌面擺拍，用來做宣傳圖', keywords: 'a product photograph of the finished physical trading card held in a hand, shallow depth of field, realistic foil reflections' },
     ] },
+    essential: true,
     aiFillable: false, default: 'artwork',
   },
   {
     id: 'rarity', label: '稀有度', group: 'finish', impact: 'high',
     hint: '影響構圖是否滿版、卡框形式與整體豪華感。',
     control: { kind: 'chips', options: RARITY },
+    essential: true,
     aiFillable: false, default: 'illustration',
   },
   {
@@ -525,7 +526,6 @@ function build(values: Record<string, string>, modes: Record<string, FillMode>) 
     j.open('printed_copy');
     j.kv('stage', kw('stage'), 'stage');
     j.kv('hp', r('hp').value, 'hp', r('hp').ai);
-    j.kv('category', r('category').value, 'category', r('category').ai);
     j.kv('ability_name', r('ability_name').value, 'ability_name', r('ability_name').ai);
     j.kv('ability_text', r('ability_text').value, 'ability_text', r('ability_text').ai);
     j.kv('attack_1', `${values.attack1_cost || ''} ${r('attack1_name').value} ${r('attack1_dmg').value}`.trim(), 'attack1_name', r('attack1_name').ai);
@@ -550,7 +550,7 @@ function build(values: Record<string, string>, modes: Record<string, FillMode>) 
   };
 }
 
-fields.push(classicFinishField('pokemon'));
+fields.unshift(...referenceFields());
 
 export const pokemonSystem: CardSystem = {
   id: 'pokemon',

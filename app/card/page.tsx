@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { Settings2, Sparkles, RotateCcw, Home, Wand2, Loader2 } from 'lucide-react';
+import { Settings2, Sparkles, RotateCcw, Home, Wand2, Loader2, SlidersHorizontal, Gauge } from 'lucide-react';
 
 import { SYSTEMS, getSystem } from '@/lib/card';
 import { defaultsOf, type FillMode } from '@/lib/card/types';
@@ -15,6 +15,9 @@ import { CardAnatomy } from '@/components/studio/CardAnatomy';
 import { PromptPanel } from '@/components/studio/PromptPanel';
 import { ResultPanel } from '@/components/studio/ResultPanel';
 import { SettingsModal, type GenSettings } from '@/components/studio/SettingsModal';
+import { ReferenceUpload } from '@/components/studio/ReferenceUpload';
+import { hasReference } from '@/lib/card/reference';
+import { providerTakesReference } from '@/lib/providers';
 
 export default function CardStudioPage() {
   return (
@@ -38,6 +41,11 @@ function Studio() {
   });
   const [aspect, setAspect] = useLocal<string>('ps.gen.aspect', 'portrait');
 
+  // 簡易 / 進階 —— 預設簡易，第一次用的人只會看到必填的那幾格
+  const [simple, setSimple] = useLocal<boolean>('ps.card.simple', true);
+  /** 參考圖只放在記憶體（可能好幾 MB，塞 localStorage 會爆） */
+  const [refImage, setRefImage] = useState<string | null>(null);
+
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [centerTab, setCenterTab] = useState<'anatomy' | 'result'>('anatomy');
   const [imageUrl, setImageUrl] = useState<string | null>(null);
@@ -46,11 +54,28 @@ function Studio() {
 
   const { flash } = useHighlight();
 
-  // 確保目前系統有預設值
+  // 確保目前系統有預設值。
+  // 舊的存檔可能沒有新加的欄位（例如參考圖那三格），所以是「補上缺的」而不是整包取代。
   useEffect(() => {
     if (!storeReady) return;
-    if (!store[system.id]) {
-      setStore((s) => ({ ...s, [system.id]: defaultsOf(system) }));
+    const cur = store[system.id];
+    const def = defaultsOf(system);
+    if (!cur) {
+      setStore((s) => ({ ...s, [system.id]: def }));
+      return;
+    }
+    const missing = system.fields.filter((f) => cur.values[f.id] === undefined);
+    if (missing.length) {
+      setStore((s) => {
+        const c = s[system.id] ?? def;
+        const values = { ...c.values };
+        const modes = { ...c.modes };
+        for (const f of missing) {
+          values[f.id] = f.default;
+          modes[f.id] = modes[f.id] ?? 'locked';
+        }
+        return { ...s, [system.id]: { values, modes } };
+      });
     }
   }, [storeReady, store, system, setStore]);
 
@@ -105,6 +130,8 @@ function Studio() {
   }, [system.id, state.values.output_target]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const provider = getProvider(settings.provider);
+  const refOn = hasReference(state.values);
+  const refTakesImage = providerTakesReference(settings.provider, settings.model);
   const aspectDef = ASPECTS.find((a) => a.value === aspect) ?? ASPECTS[0];
   const needsKey = !provider.free && !settings.keys[provider.id];
 
@@ -121,6 +148,7 @@ function Studio() {
           apiKey: settings.keys[settings.provider] ?? '',
           model: settings.model,
           prompt: activePrompt || result.plain,
+          refImage: refOn && refTakesImage ? refImage : null,
           negative: result.negative,
           width: aspectDef.w,
           height: aspectDef.h,
@@ -169,6 +197,24 @@ function Studio() {
         </div>
 
         <div className="ml-auto flex items-center gap-2">
+          <div className="flex gap-1 rounded-xl border border-slate-800 bg-slate-900/60 p-1">
+            {([
+              [true, '簡易', <Gauge key="s" size={12} />],
+              [false, '進階', <SlidersHorizontal key="p" size={12} />],
+            ] as [boolean, string, React.ReactNode][]).map(([v, label, icon]) => (
+              <button
+                key={label}
+                onClick={() => setSimple(v)}
+                title={v ? '只問最關鍵的幾格，其餘用預設值' : '開放全部欄位細調'}
+                className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition ${
+                  simple === v ? 'bg-slate-200 text-slate-950' : 'text-slate-400 hover:text-slate-100'
+                }`}
+              >
+                {icon}
+                {label}
+              </button>
+            ))}
+          </div>
           {aiCount > 0 && (
             <span className="hidden items-center gap-1 rounded-lg border border-violet-400/40 bg-violet-400/10 px-2 py-1 text-[11px] text-violet-300 md:inline-flex">
               <Sparkles size={11} /> {aiCount} 格交給 AI
@@ -199,6 +245,12 @@ function Studio() {
             onChange={setValue}
             onModeChange={setMode}
             focusField={focusField}
+            simple={simple}
+            slot={
+              refOn ? (
+                <ReferenceUpload image={refImage} onImage={setRefImage} kind={state.values.ref_use} />
+              ) : null
+            }
           />
         </section>
 
@@ -228,7 +280,7 @@ function Studio() {
 
           <div className="min-h-0 flex-1 overflow-y-auto p-4">
             {centerTab === 'anatomy' ? (
-              <CardAnatomy system={system} onPickField={pickField} />
+              <CardAnatomy system={system} onPickField={pickField} simple={simple} />
             ) : (
               <ResultPanel imageUrl={imageUrl} loading={loading} error={error} provider={provider.label} />
             )}
@@ -253,6 +305,21 @@ function Studio() {
                 {loading ? '生成中' : '生成圖片'}
               </button>
             </div>
+            {refOn && (
+              <p
+                className={`rounded-lg border px-2 py-1.5 text-center text-[11px] leading-snug ${
+                  refTakesImage
+                    ? 'border-emerald-400/30 bg-emerald-400/5 text-emerald-300'
+                    : 'border-amber-400/30 bg-amber-400/5 text-amber-300'
+                }`}
+              >
+                {refTakesImage
+                  ? refImage
+                    ? '出圖時會把你的參考圖一起送出。'
+                    : '這個模型吃參考圖 —— 記得在左邊選一張照片。'
+                  : '這個供應商／模型不吃參考圖：請改用 Gemini 的 gemini-2.5-flash-image，或把提示詞複製到會讀圖的工具（ChatGPT、即夢…）再附上照片。'}
+              </p>
+            )}
             <p className="text-center text-[11px] text-slate-500">
               使用 <span className="text-slate-300">{provider.label}</span>
               {needsKey && <span className="text-amber-400"> · 尚未填入 API Key</span>}

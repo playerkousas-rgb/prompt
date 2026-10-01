@@ -26,6 +26,8 @@ export async function POST(req: Request) {
     width = 832,
     height = 1216,
     aspect = '2:3',
+    /** 使用者上傳的參考圖（data URL）。只在這一次請求裡用到，不落地。 */
+    refImage = null,
   } = body ?? {};
 
   if (!prompt.trim()) {
@@ -39,8 +41,14 @@ export async function POST(req: Request) {
     switch (provider) {
       case 'openai':
         return await viaOpenAI({ apiKey, model: model || 'gpt-image-1', prompt, width, height });
-      case 'gemini':
-        return await viaGemini({ apiKey, model: model || 'imagen-4.0-generate-001', prompt, aspect });
+      case 'gemini': {
+        const m = model || 'gemini-2.5-flash-image';
+        // gemini-*-image 系列走 generateContent，可以同時吃文字與參考圖；
+        // imagen-* 只吃文字。
+        return /image/.test(m) && !m.startsWith('imagen')
+          ? await viaGeminiImage({ apiKey, model: m, prompt, refImage })
+          : await viaGemini({ apiKey, model: m, prompt, aspect });
+      }
       case 'stability':
         return await viaStability({ apiKey, model: model || 'core', prompt, negative, aspect });
       default:
@@ -107,6 +115,53 @@ async function viaGemini(o: { apiKey: string; model: string; prompt: string; asp
   const b64 = pred?.bytesBase64Encoded || pred?.image?.imageBytes;
   if (!b64) throw new Error('Gemini 沒有回傳圖片（可能被安全政策擋下）');
   return NextResponse.json({ imageUrl: `data:image/png;base64,${b64}`, provider: 'gemini' });
+}
+
+// --- Gemini 2.5 Flash Image（吃參考圖的那一條路）----------------------------
+
+function splitDataUrl(dataUrl: string) {
+  const m = /^data:([^;]+);base64,(.+)$/.exec(dataUrl.trim());
+  if (!m) return null;
+  return { mimeType: m[1], data: m[2] };
+}
+
+async function viaGeminiImage(o: {
+  apiKey: string;
+  model: string;
+  prompt: string;
+  refImage: string | null;
+}) {
+  const parts: any[] = [];
+
+  if (o.refImage) {
+    const img = splitDataUrl(o.refImage);
+    if (!img) throw new Error('參考圖格式看不懂，請重新選一次照片');
+    // 參考圖放在最前面 —— 提示詞裡寫的「第一張圖」指的就是它
+    parts.push({ inline_data: { mime_type: img.mimeType, data: img.data } });
+  }
+  parts.push({ text: o.prompt });
+
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${o.model}:generateContent`,
+    {
+      method: 'POST',
+      headers: { 'x-goog-api-key': o.apiKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contents: [{ role: 'user', parts }] }),
+    }
+  );
+
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.error?.message || `Gemini 回應 ${res.status}`);
+
+  const out = data?.candidates?.[0]?.content?.parts ?? [];
+  const inline = out.find((p: any) => p.inlineData?.data || p.inline_data?.data);
+  const b64 = inline?.inlineData?.data ?? inline?.inline_data?.data;
+  if (!b64) {
+    const why = out.find((p: any) => p.text)?.text;
+    throw new Error(why ? `Gemini 沒有回傳圖片：${why.slice(0, 160)}` : 'Gemini 沒有回傳圖片（可能被安全政策擋下）');
+  }
+  const mime = inline?.inlineData?.mimeType ?? inline?.inline_data?.mime_type ?? 'image/png';
+  return NextResponse.json({ imageUrl: `data:${mime};base64,${b64}`, provider: 'gemini' });
 }
 
 // --- Stability AI -----------------------------------------------------------

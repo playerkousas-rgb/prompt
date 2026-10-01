@@ -83,6 +83,16 @@ export interface FieldDef {
   /** 交給 AI 時，寫進 prompt 的指示 */
   aiInstruction?: string;
   default: string;
+  /**
+   * 簡易模式要不要顯示。
+   * 簡易模式只留「不填就會爛掉」的那幾格，其餘都在進階模式裡。
+   */
+  essential?: boolean;
+  /**
+   * 這個欄位會寫進輸出 JSON 的哪一個鍵（給 UI 顯示「它控制什麼」用）。
+   * 例：'card_layout.ui_elements → Move 1'
+   */
+  outputKey?: string;
 }
 
 /** prompt 被切成一段一段，每段記得自己是哪個欄位生出來的 */
@@ -138,6 +148,29 @@ export function defaultsOf(sys: CardSystem) {
 
 export function segmentsToText(segments: PromptSegment[]) {
   return segments.map((s) => s.text).join('');
+}
+
+/**
+ * 這個欄位會動到卡面的哪幾塊 —— 大區塊（插圖窗、卡框）排在後面，
+ * 因為它們太籠統，使用者要看的是精確的那一塊。
+ */
+export function zonesOfField(sys: CardSystem, fieldId: string): ZoneDef[] {
+  return sys.zones
+    .filter((z) => z.fieldIds.includes(fieldId))
+    .sort((a, b) => (a.tone === 'soft' ? 1 : 0) - (b.tone === 'soft' ? 1 : 0));
+}
+
+/** 一句話：「改這格 → 卡面的哪裡會變」 */
+export function zoneSummary(sys: CardSystem, fieldId: string): string {
+  const zs = zonesOfField(sys, fieldId);
+  if (!zs.length) return '不印在卡面上，只影響整體氣質';
+  return zs.map((z) => z.label.replace(/（.*?）/g, '')).join('、');
+}
+
+/** 開發期自我檢查：有沒有欄位沒被任何區塊認領（UI 會顯示覆蓋率） */
+export function uncoveredFields(sys: CardSystem): FieldDef[] {
+  const claimed = new Set(sys.zones.flatMap((z) => z.fieldIds));
+  return sys.fields.filter((f) => !claimed.has(f.id));
 }
 
 export const IMPACT_META: Record<Impact, { label: string; cls: string; dot: string }> = {
